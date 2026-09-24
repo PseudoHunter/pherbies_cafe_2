@@ -1,0 +1,1243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pherbies Cafe - Cat Rescue & Artisan Cafe</title>
+  <meta name="description" content="A dedicated cat rescue mission operating as a cozy cat cafe in Malaysia. Savor artisan coffee & pastries while supporting resident rescue cats, TNR operations, and medical care.">
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  
+  <!-- Google Fonts: Plus Jakarta Sans & Playfair Display -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;1,500;1,600&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --bg-cream: #FFFDF8;
+      --sage-green: #7A9A8B;
+      --warm-terracotta: #E07A5F;
+      --soft-charcoal: #2D3142;
+    }
+    
+    html {
+      scroll-behavior: smooth;
+      font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    }
+    
+    .font-serif-title {
+      font-family: 'Playfair Display', Georgia, serif;
+    }
+    
+    /* Clamp utilities for responsive fluid typography */
+    .title-hero {
+      font-size: clamp(2rem, 5vw + 1rem, 3.75rem);
+      line-height: 1.15;
+    }
+    
+    .title-section {
+      font-size: clamp(1.75rem, 3vw + 0.5rem, 2.5rem);
+      line-height: 1.2;
+    }
+    
+    /* Custom clean scrollbars */
+    ::-webkit-scrollbar {
+      width: 7px;
+      height: 7px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #FAF7F0;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #D9D3C7;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #BFB7A8;
+    }
+  </style>
+</head>
+<body class="bg-[#FFFDF8] text-[#2D3142] antialiased selection:bg-[#E07A5F]/20 selection:text-[#E07A5F] overflow-x-hidden">
+
+  <!-- 1. Direct Broadcast Announcement Banner -->
+  <div id="announcement-banner" class="bg-[#E07A5F] text-white px-4 py-2.5 text-xs sm:text-sm font-medium relative z-40">
+    <div class="max-w-7xl mx-auto flex items-center justify-between gap-3">
+      <div class="flex items-center gap-2 flex-1 justify-center text-center flex-wrap">
+        <span id="banner-badge" class="inline-flex items-center gap-1 font-bold tracking-wide uppercase text-[11px] bg-white/20 px-2 py-0.5 rounded">
+          Rescue News
+        </span>
+        <span id="banner-text" class="text-white/95">
+          Pherbies Rescue Mission: 100% of cafe beverage sales this weekend support our upcoming Subang colony TNR spay drive!
+        </span>
+        <a id="banner-link" href="#tnr-log" class="inline-flex items-center gap-1 underline underline-offset-4 font-semibold hover:text-white/80 transition-colors ml-1">
+          See TNR Log →
+        </a>
+      </div>
+      <button onclick="dismissBanner()" class="p-1 hover:bg-black/10 rounded-full transition-colors text-white/80 hover:text-white shrink-0" aria-label="Dismiss banner">
+        <i data-lucide="x" class="w-4 h-4"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- 2. Sticky Navbar -->
+  <header class="sticky top-0 z-30 bg-[#FFFDF8]/95 backdrop-blur-md border-b border-[#E8E2D5] transition-all">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-20">
+        
+        <!-- Brand Logo -->
+        <a href="#" class="flex items-center gap-3 group">
+          <div class="w-11 h-11 rounded-2xl bg-[#E07A5F]/10 border border-[#E07A5F]/20 flex items-center justify-center text-[#E07A5F] group-hover:bg-[#E07A5F] group-hover:text-white transition-all duration-300 shadow-sm">
+            <i data-lucide="cat" class="w-6 h-6"></i>
+          </div>
+          <div>
+            <div class="flex items-baseline gap-1.5">
+              <span class="font-serif-title font-bold text-xl sm:text-2xl text-[#2D3142] tracking-tight">
+                Pherbies Cafe
+              </span>
+              <span class="text-[10px] uppercase font-bold tracking-widest text-[#7A9A8B] hidden sm:inline">
+                Malaysia
+              </span>
+            </div>
+            <p class="text-[11px] text-[#2D3142]/70 font-medium">
+              Cat Rescue Mission & Artisan Cafe
+            </p>
+          </div>
+        </a>
+
+        <!-- Desktop Navigation Links -->
+        <nav class="hidden lg:flex items-center gap-7">
+          <a href="#impact-tracker" class="text-sm font-medium text-[#2D3142]/80 hover:text-[#E07A5F] transition-colors py-1">Impact Tracker</a>
+          <a href="#cats-gallery" class="text-sm font-medium text-[#2D3142]/80 hover:text-[#E07A5F] transition-colors py-1">Rescue Cats</a>
+          <a href="#cafe-menu" class="text-sm font-medium text-[#2D3142]/80 hover:text-[#E07A5F] transition-colors py-1">Cafe Menu</a>
+          <a href="#tnr-log" class="text-sm font-medium text-[#2D3142]/80 hover:text-[#E07A5F] transition-colors py-1">TNR Mission</a>
+          <a href="#reservations" class="text-sm font-medium text-[#2D3142]/80 hover:text-[#E07A5F] transition-colors py-1">Book Table</a>
+        </nav>
+
+        <!-- Right Action Buttons -->
+        <div class="flex items-center gap-3">
+          <a href="https://www.threads.net/@pherbiescafe" target="_blank" rel="noopener noreferrer" class="hidden sm:inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-xl text-[#2D3142]/80 hover:text-[#2D3142] hover:bg-[#F0ECE1] transition-all">
+            <span class="font-mono font-bold text-sm">@</span> Threads
+          </a>
+
+          <a href="#reservations" class="hidden sm:inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-[#7A9A8B]/50 text-[#2D3142] hover:bg-[#7A9A8B]/10 font-semibold text-xs sm:text-sm transition-all">
+            <i data-lucide="coffee" class="w-4 h-4 text-[#7A9A8B]"></i>
+            Book Visit
+          </a>
+
+          <button onclick="openDonationModal()" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#E07A5F] hover:bg-[#C9664C] text-white text-xs sm:text-sm font-semibold transition-all shadow-sm">
+            <i data-lucide="heart" class="w-4 h-4 fill-white/20"></i>
+            Donate Now
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- 3. Hero Section -->
+  <section class="relative overflow-hidden pt-8 pb-16 lg:pt-14 lg:pb-24">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center">
+        
+        <div class="lg:col-span-7 space-y-6 text-center lg:text-left">
+          <div class="inline-flex items-center gap-2 text-xs sm:text-sm font-semibold text-[#5A7A6B]">
+            <span class="w-2 h-2 rounded-full bg-[#7A9A8B] animate-pulse"></span>
+            <span class="tracking-wide uppercase text-[11px] font-bold">Malaysian Independent Cat Rescue & Cafe</span>
+            <span class="text-stone-300">/</span>
+            <span class="inline-flex items-center gap-1 text-[#2D3142]/70 font-normal">
+              <i data-lucide="map-pin" class="w-3.5 h-3.5 text-[#E07A5F]"></i> Klang Valley, MY
+            </span>
+          </div>
+
+          <h1 class="font-serif-title title-hero font-bold tracking-tight text-[#2D3142]">
+            Every sip brews hope. Every visit heals a <span class="italic text-[#E07A5F]">rescue paw.</span>
+          </h1>
+
+          <p class="text-base sm:text-lg text-[#2D3142]/80 leading-relaxed max-w-2xl mx-auto lg:mx-0">
+            Pherbies Cafe is a grassroots cat rescue mission disguised as a cozy artisan coffee haven. Proceeds directly sustain <strong>8+ resident cats</strong> and power monthly <strong>TNR (Trap-Neuter-Return)</strong> operations across our neighborhood—covering RM 3,000 to RM 3,500 in monthly vet treatments, food, tofu litter, and recovery vitamins.
+          </p>
+
+          <div class="flex flex-wrap items-center justify-center lg:justify-start gap-3.5 pt-2">
+            <a href="#cafe-menu" class="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-[#2D3142] text-white font-semibold text-sm hover:bg-[#1f222e] transition-all shadow-sm">
+              <i data-lucide="coffee" class="w-4 h-4 text-[#E07A5F]"></i> Explore Menu
+            </a>
+            <a href="#cats-gallery" class="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl border border-[#7A9A8B] text-[#2D3142] bg-[#7A9A8B]/10 hover:bg-[#7A9A8B]/20 font-semibold text-sm transition-all">
+              <i data-lucide="cat" class="w-4 h-4 text-[#7A9A8B]"></i> Meet Our Cats
+            </a>
+            <button onclick="openDonationModal()" class="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-[#E07A5F] text-white font-semibold text-sm hover:bg-[#C9664C] transition-all shadow-sm">
+              <i data-lucide="heart" class="w-4 h-4 fill-white/20"></i> Donate Now
+            </button>
+          </div>
+
+          <!-- Live Target Quick Teaser -->
+          <div class="pt-4 border-t border-[#E8E2D5] max-w-xl mx-auto lg:mx-0">
+            <div class="flex items-center justify-between text-xs text-[#2D3142]/80 mb-2">
+              <span class="font-semibold text-[#5A7A6B] flex items-center gap-1">
+                <i data-lucide="shield-check" class="w-4 h-4"></i> Monthly Medical & Care Target
+              </span>
+              <span id="hero-progress-text" class="font-bold text-[#2D3142]">RM 2,680 / RM 3,500 (76%)</span>
+            </div>
+            <div class="w-full bg-[#EAE5D9] h-2.5 rounded-full overflow-hidden">
+              <div id="hero-progress-fill" class="bg-gradient-to-r from-[#7A9A8B] to-[#E07A5F] h-full rounded-full transition-all duration-700" style="width: 76%;"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="lg:col-span-5 relative">
+          <div class="relative mx-auto max-w-md lg:max-w-none rounded-3xl overflow-hidden shadow-xl border-4 border-white bg-white">
+            <img src="https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&w=1000&q=80" alt="Pherbie, cafe mascot cat" class="w-full h-80 sm:h-96 object-cover">
+            <div class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/40 to-transparent p-5 text-white">
+              <div class="text-xs uppercase tracking-wider text-[#E8E2D5] font-semibold">Permanent Resident</div>
+              <h3 class="font-serif-title text-xl font-bold">Pherbie (Cafe Mascot)</h3>
+              <p class="text-xs text-white/80 mt-1">Found injured near an alley market. Today he greets everyone who comes in.</p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- 4. Live Impact Tracker Section -->
+  <section id="impact-tracker" class="py-16 sm:py-20 bg-[#F9F6F0] border-y border-[#E8E2D5]">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      
+      <div class="max-w-3xl mx-auto text-center space-y-3 mb-12">
+        <div class="text-xs font-bold tracking-widest text-[#5A7A6B] uppercase">Transparent Rescue Accounting</div>
+        <h2 class="font-serif-title title-section font-bold text-[#2D3142]">Monthly Medical & Care Impact Tracker</h2>
+        <p class="text-sm sm:text-base text-[#2D3142]/75">
+          Taking in injured strays and executing monthly TNR requires continuous veterinary care. Our monthly survival expenses run between <strong>RM 3,000 and RM 3,500</strong>.
+        </p>
+      </div>
+
+      <div class="bg-[#FFFDF8] rounded-3xl p-6 sm:p-10 border border-[#E8E2D5] shadow-sm max-w-4xl mx-auto mb-12">
+        <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-6">
+          <div>
+            <div class="text-xs font-medium uppercase tracking-wider text-[#2D3142]/60 mb-1">Current Goal (September)</div>
+            <div class="flex items-baseline gap-2">
+              <span id="tracker-raised-amount" class="font-serif-title text-4xl sm:text-5xl font-bold text-[#2D3142]">RM 2,680</span>
+              <span id="tracker-target-amount" class="text-base sm:text-lg font-medium text-[#2D3142]/60">raised of RM 3,500</span>
+            </div>
+          </div>
+          <div class="text-right flex sm:flex-col justify-between items-center sm:items-end">
+            <span id="tracker-percentage" class="text-2xl sm:text-3xl font-extrabold text-[#E07A5F]">76%</span>
+            <span id="tracker-remaining" class="text-xs text-[#2D3142]/70 font-medium">RM 820 remaining to reach target</span>
+          </div>
+        </div>
+
+        <div class="w-full bg-[#EAE5D9] h-5 rounded-full overflow-hidden p-1 shadow-inner">
+          <div id="tracker-progress-bar" class="bg-gradient-to-r from-[#7A9A8B] via-[#E07A5F] to-[#C9664C] h-full rounded-full transition-all duration-1000" style="width: 76%;"></div>
+        </div>
+
+        <div class="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4 pt-6 border-t border-[#E8E2D5]">
+          <div class="text-xs text-[#2D3142]/70 text-center sm:text-left">
+            <strong>100% Transparency:</strong> Updates instantly whenever a donation is pledged.
+          </div>
+          <button onclick="openDonationModal()" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-[#E07A5F] hover:bg-[#C9664C] text-white font-semibold text-sm transition-all shadow-sm">
+            <i data-lucide="heart" class="w-4 h-4 fill-white/20"></i> Pledge a Donation
+          </button>
+        </div>
+      </div>
+
+      <!-- Breakdown Indicators -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 max-w-6xl mx-auto mb-12">
+        <div class="bg-[#FFFDF8] rounded-2xl p-5 border border-[#E8E2D5] flex flex-col justify-between">
+          <div>
+            <div class="w-10 h-10 rounded-xl bg-[#E07A5F]/15 text-[#E07A5F] flex items-center justify-center mb-3">
+              <i data-lucide="stethoscope" class="w-5 h-5"></i>
+            </div>
+            <h3 class="font-serif-title font-bold text-base text-[#2D3142] mb-1">Vet Care & Surgeries</h3>
+            <p class="text-xs text-[#2D3142]/70 mb-4">Surgeries, wound care, spay operations and recovery meds.</p>
+          </div>
+          <div class="pt-3 border-t border-[#F0ECE1]">
+            <div class="flex justify-between text-xs mb-1">
+              <span id="stat-vet-amount" class="font-bold text-[#2D3142]">RM 1,450</span>
+              <span class="text-[#2D3142]/60">Target RM 1,800</span>
+            </div>
+            <div class="w-full bg-[#EAE5D9] h-1.5 rounded-full overflow-hidden">
+              <div id="stat-vet-bar" class="bg-[#E07A5F] h-full rounded-full" style="width: 80%;"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-[#FFFDF8] rounded-2xl p-5 border border-[#E8E2D5] flex flex-col justify-between">
+          <div>
+            <div class="w-10 h-10 rounded-xl bg-[#7A9A8B]/15 text-[#7A9A8B] flex items-center justify-center mb-3">
+              <i data-lucide="utensils" class="w-5 h-5"></i>
+            </div>
+            <h3 class="font-serif-title font-bold text-base text-[#2D3142] mb-1">Cat Food & Nutrition</h3>
+            <p class="text-xs text-[#2D3142]/70 mb-4">Grain-free wet cans, recovery mousse, and quality kibbles.</p>
+          </div>
+          <div class="pt-3 border-t border-[#F0ECE1]">
+            <div class="flex justify-between text-xs mb-1">
+              <span id="stat-food-amount" class="font-bold text-[#2D3142]">RM 680</span>
+              <span class="text-[#2D3142]/60">Target RM 800</span>
+            </div>
+            <div class="w-full bg-[#EAE5D9] h-1.5 rounded-full overflow-hidden">
+              <div id="stat-food-bar" class="bg-[#7A9A8B] h-full rounded-full" style="width: 85%;"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-[#FFFDF8] rounded-2xl p-5 border border-[#E8E2D5] flex flex-col justify-between">
+          <div>
+            <div class="w-10 h-10 rounded-xl bg-[#D4A373]/15 text-[#D4A373] flex items-center justify-center mb-3">
+              <i data-lucide="package" class="w-5 h-5"></i>
+            </div>
+            <h3 class="font-serif-title font-bold text-base text-[#2D3142] mb-1">Soy Tofu Litter</h3>
+            <p class="text-xs text-[#2D3142]/70 mb-4">Natural dust-free litter for respiratory health in indoor lounge.</p>
+          </div>
+          <div class="pt-3 border-t border-[#F0ECE1]">
+            <div class="flex justify-between text-xs mb-1">
+              <span id="stat-litter-amount" class="font-bold text-[#2D3142]">RM 350</span>
+              <span class="text-[#2D3142]/60">Target RM 550</span>
+            </div>
+            <div class="w-full bg-[#EAE5D9] h-1.5 rounded-full overflow-hidden">
+              <div id="stat-litter-bar" class="bg-[#D4A373] h-full rounded-full" style="width: 63%;"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-[#FFFDF8] rounded-2xl p-5 border border-[#E8E2D5] flex flex-col justify-between">
+          <div>
+            <div class="w-10 h-10 rounded-xl bg-[#819890]/15 text-[#819890] flex items-center justify-center mb-3">
+              <i data-lucide="activity" class="w-5 h-5"></i>
+            </div>
+            <h3 class="font-serif-title font-bold text-base text-[#2D3142] mb-1">Vitamins & Supps</h3>
+            <p class="text-xs text-[#2D3142]/70 mb-4">Immune lysine, joint mobility support, probiotics, eye drops.</p>
+          </div>
+          <div class="pt-3 border-t border-[#F0ECE1]">
+            <div class="flex justify-between text-xs mb-1">
+              <span id="stat-vitamins-amount" class="font-bold text-[#2D3142]">RM 200</span>
+              <span class="text-[#2D3142]/60">Target RM 350</span>
+            </div>
+            <div class="w-full bg-[#EAE5D9] h-1.5 rounded-full overflow-hidden">
+              <div id="stat-vitamins-bar" class="bg-[#819890] h-full rounded-full" style="width: 57%;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent Donors Wall -->
+      <div class="max-w-4xl mx-auto bg-[#FFFDF8] rounded-2xl p-6 sm:p-8 border border-[#E8E2D5]">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="font-serif-title text-xl font-bold text-[#2D3142]">Recent Community Guardians</h3>
+          <button onclick="openDonationModal()" class="text-xs font-semibold text-[#E07A5F] hover:underline">
+            Add your pledge →
+          </button>
+        </div>
+        <div id="donors-list" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <!-- Rendered via JS -->
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- 5. Cats Gallery Section -->
+  <section id="cats-gallery" class="py-16 sm:py-24 bg-[#FFFDF8]">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      
+      <div class="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
+        <div>
+          <div class="text-xs font-bold tracking-widest text-[#5A7A6B] uppercase mb-1">Resident Rescue Colony</div>
+          <h2 class="font-serif-title title-section font-bold text-[#2D3142]">Meet Our Rescued Furkids</h2>
+          <p class="text-sm sm:text-base text-[#2D3142]/75 mt-2 max-w-2xl">
+            Each resident was saved from high-risk street conditions in Malaysia. Click any card to read their complete rescue story!
+          </p>
+        </div>
+
+        <div class="flex items-center gap-1.5 p-1.5 bg-[#F4EFE6] rounded-2xl overflow-x-auto">
+          <button onclick="filterCats('All')" class="cat-filter-btn px-3.5 py-2 text-xs font-semibold rounded-xl bg-[#FFFDF8] text-[#2D3142] shadow-sm">All</button>
+          <button onclick="filterCats('Permanent Resident')" class="cat-filter-btn px-3.5 py-2 text-xs font-semibold rounded-xl text-[#2D3142]/70 hover:text-[#2D3142]">Permanent Resident</button>
+          <button onclick="filterCats('Up for Adoption')" class="cat-filter-btn px-3.5 py-2 text-xs font-semibold rounded-xl text-[#2D3142]/70 hover:text-[#2D3142]">Up for Adoption</button>
+          <button onclick="filterCats('Medical Recovery')" class="cat-filter-btn px-3.5 py-2 text-xs font-semibold rounded-xl text-[#2D3142]/70 hover:text-[#2D3142]">Medical Recovery</button>
+        </div>
+      </div>
+
+      <div id="cats-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <!-- Rendered via JS -->
+      </div>
+    </div>
+  </section>
+
+  <!-- 6. Cafe Menu Section -->
+  <section id="cafe-menu" class="py-16 sm:py-24 bg-[#F8F5EE] border-t border-[#E8E2D5]">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      
+      <div class="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
+        <div>
+          <div class="text-xs font-bold tracking-widest text-[#5A7A6B] uppercase mb-1">Artisan Kitchen & Coffee</div>
+          <h2 class="font-serif-title title-section font-bold text-[#2D3142]">Savor With A Purpose</h2>
+          <p class="text-sm sm:text-base text-[#2D3142]/75 mt-2 max-w-2xl">
+            100% of cafe profits fund monthly vet bills and supplies. Handcrafted with local Malaysian ingredients.
+          </p>
+        </div>
+
+        <!-- Category Tabs -->
+        <div class="flex items-center gap-2 border-b border-[#E8E2D5] pb-2 overflow-x-auto">
+          <button onclick="filterMenu('Coffee & Drinks')" class="menu-tab-btn px-4 py-2 text-xs sm:text-sm font-semibold rounded-xl bg-[#2D3142] text-white">Coffee & Drinks</button>
+          <button onclick="filterMenu('Pastries & Mains')" class="menu-tab-btn px-4 py-2 text-xs sm:text-sm font-semibold rounded-xl bg-[#FFFDF8] text-[#2D3142]/75 border border-[#E8E2D5]">Pastries & Mains</button>
+          <button onclick="filterMenu('Cat Treats')" class="menu-tab-btn px-4 py-2 text-xs sm:text-sm font-semibold rounded-xl bg-[#FFFDF8] text-[#2D3142]/75 border border-[#E8E2D5]">Cat Treats</button>
+        </div>
+      </div>
+
+      <div id="menu-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <!-- Rendered via JS -->
+      </div>
+    </div>
+  </section>
+
+  <!-- 7. TNR Log Section -->
+  <section id="tnr-log" class="py-16 sm:py-24 bg-[#FFFDF8]">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      
+      <div class="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
+        <div>
+          <div class="text-xs font-bold tracking-widest text-[#5A7A6B] uppercase mb-1">Neighborhood Population Control</div>
+          <h2 class="font-serif-title title-section font-bold text-[#2D3142]">Rescue Operations & Monthly TNR Log</h2>
+          <p class="text-sm sm:text-base text-[#2D3142]/75 mt-2 max-w-2xl">
+            TNR (Trap-Neuter-Return) stops cycle suffering and protects strays. Here is our monthly operational log:
+          </p>
+        </div>
+        <button onclick="openDonationModal()" class="self-start md:self-auto inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-[#7A9A8B] hover:bg-[#5A7A6B] text-white text-xs sm:text-sm font-semibold transition-all">
+          <i data-lucide="heart-handshake" class="w-4 h-4"></i> Sponsor a TNR Spay (RM 150)
+        </button>
+      </div>
+
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12 text-center">
+        <div class="bg-[#F8F5EE] rounded-2xl p-5 border border-[#E8E2D5]">
+          <div id="stat-tnr-total" class="font-serif-title text-3xl font-extrabold text-[#E07A5F] mb-1">76+</div>
+          <div class="text-xs font-semibold text-[#2D3142]">Community Cats Spayed</div>
+        </div>
+        <div class="bg-[#F8F5EE] rounded-2xl p-5 border border-[#E8E2D5]">
+          <div id="stat-rescues-total" class="font-serif-title text-3xl font-extrabold text-[#7A9A8B] mb-1">48</div>
+          <div class="text-xs font-semibold text-[#2D3142]">Medical Rescues</div>
+        </div>
+        <div class="bg-[#F8F5EE] rounded-2xl p-5 border border-[#E8E2D5]">
+          <div id="stat-colonies-total" class="font-serif-title text-3xl font-extrabold text-[#2D3142] mb-1">5</div>
+          <div class="text-xs font-semibold text-[#2D3142]">Colonies Monitored</div>
+        </div>
+        <div class="bg-[#F8F5EE] rounded-2xl p-5 border border-[#E8E2D5]">
+          <div class="font-serif-title text-3xl font-extrabold text-[#D4A373] mb-1">100%</div>
+          <div class="text-xs font-semibold text-[#2D3142]">Volunteer Driven</div>
+        </div>
+      </div>
+
+      <div id="tnr-grid" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Rendered via JS -->
+      </div>
+    </div>
+  </section>
+
+  <!-- 8. Reservations & Dine-in Section -->
+  <section id="reservations" class="py-16 sm:py-24 bg-[#F8F5EE] border-t border-[#E8E2D5]">
+    <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+      
+      <div class="text-center max-w-xl mx-auto mb-10">
+        <div class="text-xs font-bold tracking-widest text-[#5A7A6B] uppercase mb-1">Dine-In & Cat Lounge</div>
+        <h2 class="font-serif-title title-section font-bold text-[#2D3142]">Reserve Your Visit</h2>
+        <p class="text-xs sm:text-sm text-[#2D3142]/75 mt-2">
+          We limit lounge visitors to preserve a stress-free sanctuary. Socks are required in the cat play lounge!
+        </p>
+      </div>
+
+      <div class="bg-[#FFFDF8] rounded-3xl p-6 sm:p-10 border border-[#E8E2D5] shadow-sm">
+        <form id="reservation-form" onsubmit="handleReservationSubmit(event)" class="space-y-4 text-xs sm:text-sm">
+          <div>
+            <label class="block font-bold text-[#2D3142] mb-1">Full Name *</label>
+            <input type="text" required id="res-name" placeholder="e.g. Nur Aina / Jason" class="w-full px-4 py-2.5 rounded-xl border border-[#E8E2D5] bg-[#FFFDF8] focus:border-[#7A9A8B]">
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block font-bold text-[#2D3142] mb-1">WhatsApp Phone (+60) *</label>
+              <input type="tel" required id="res-phone" placeholder="012-345 6789" class="w-full px-4 py-2.5 rounded-xl border border-[#E8E2D5] bg-[#FFFDF8] focus:border-[#7A9A8B]">
+            </div>
+            <div>
+              <label class="block font-bold text-[#2D3142] mb-1">Experience Type *</label>
+              <select id="res-type" class="w-full px-4 py-2.5 rounded-xl border border-[#E8E2D5] bg-[#FFFDF8] focus:border-[#7A9A8B]">
+                <option value="Cat Lounge Cuddle Session">Cat Lounge Play & Cuddle (60m)</option>
+                <option value="Cafe Dining Table">Cafe Dining Table Only</option>
+                <option value="Takeaway Order">Express Takeaway Coffee/Bakes</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <label class="block font-bold text-[#2D3142] mb-1">Date *</label>
+              <input type="date" required id="res-date" class="w-full px-4 py-2.5 rounded-xl border border-[#E8E2D5] bg-[#FFFDF8] focus:border-[#7A9A8B]">
+            </div>
+            <div>
+              <label class="block font-bold text-[#2D3142] mb-1">Time Slot *</label>
+              <select id="res-time" class="w-full px-4 py-2.5 rounded-xl border border-[#E8E2D5] bg-[#FFFDF8] focus:border-[#7A9A8B]">
+                <option value="11:00 AM">11:00 AM</option>
+                <option value="01:00 PM">01:00 PM</option>
+                <option value="03:00 PM">03:00 PM</option>
+                <option value="05:00 PM">05:00 PM</option>
+                <option value="07:00 PM">07:00 PM</option>
+              </select>
+            </div>
+            <div>
+              <label class="block font-bold text-[#2D3142] mb-1">Guests *</label>
+              <select id="res-guests" class="w-full px-4 py-2.5 rounded-xl border border-[#E8E2D5] bg-[#FFFDF8] focus:border-[#7A9A8B]">
+                <option value="1">1 Person</option>
+                <option value="2" selected>2 Persons</option>
+                <option value="3">3 Persons</option>
+                <option value="4">4 Persons</option>
+                <option value="5">5+ Persons</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="pt-2">
+            <button type="submit" class="w-full py-3.5 rounded-2xl bg-[#E07A5F] hover:bg-[#C9664C] text-white font-bold text-sm transition-all shadow-sm">
+              Confirm Reservation
+            </button>
+          </div>
+        </form>
+
+        <div id="booking-confirmation-box" class="hidden text-center space-y-3 pt-4">
+          <div class="w-12 h-12 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center mx-auto">
+            <i data-lucide="check" class="w-6 h-6"></i>
+          </div>
+          <h4 class="font-serif-title text-xl font-bold text-[#2D3142]">Reservation Confirmed!</h4>
+          <p id="booking-confirmation-details" class="text-xs text-[#2D3142]/75"></p>
+          <button onclick="document.getElementById('booking-confirmation-box').classList.add('hidden'); document.getElementById('reservation-form').classList.remove('hidden');" class="text-xs text-[#E07A5F] underline">
+            Book another slot
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- 9. Footer with Hidden Admin Access Trigger -->
+  <footer class="bg-[#262A38] text-white pt-16 pb-12 border-t border-[#1C1F2A] relative">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-8 pb-10 border-b border-white/10 text-xs text-stone-300">
+        
+        <!-- Col 1 -->
+        <div class="space-y-3">
+          <div onclick="tripleClickAdmin()" class="flex items-center gap-2 cursor-pointer select-none">
+            <div class="w-8 h-8 rounded-xl bg-[#E07A5F] flex items-center justify-center text-white">
+              <i data-lucide="cat" class="w-4 h-4"></i>
+            </div>
+            <span class="font-serif-title font-bold text-xl text-white">Pherbies Cafe</span>
+          </div>
+          <p class="leading-relaxed">
+            Grassroots cat rescue mission & specialty cafe in Malaysia. 100% of proceeds fund emergency vet bills, cat food, tofu litter, and TNR operations.
+          </p>
+          <a href="https://www.threads.net/@pherbiescafe" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1.5 text-stone-300 hover:text-white">
+            <span class="font-mono font-bold text-sm">@</span> Threads @pherbiescafe
+          </a>
+        </div>
+
+        <!-- Col 2 -->
+        <div class="space-y-2">
+          <h4 class="font-bold text-white text-sm">Hours & Location</h4>
+          <p>Tue – Sun: 10:00 AM – 9:00 PM</p>
+          <p class="text-stone-400">Closed Mondays for clinic runs & sanitization</p>
+          <p class="pt-2">Petaling Jaya / Bangsar, Selangor, Malaysia</p>
+        </div>
+
+        <!-- Col 3 -->
+        <div class="space-y-2">
+          <h4 class="font-bold text-white text-sm">Rescue Focus</h4>
+          <p>• 8+ Resident rescue cats cared for</p>
+          <p>• Monthly TNR spay operations</p>
+          <p>• RM 3,500 monthly care budget</p>
+        </div>
+
+        <!-- Col 4: Etiquette -->
+        <div class="space-y-2">
+          <h4 class="font-bold text-white text-sm">Cafe Etiquette</h4>
+          <p>🧦 Socks required inside cat lounge</p>
+          <p>🤫 Quiet voices, gentle petting</p>
+          <p>💤 Do not disturb sleeping cats</p>
+        </div>
+      </div>
+
+      <div class="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-stone-400">
+        <div>
+          © 2024 Pherbies Cafe Malaysia. Rescuing, spaying & loving.
+        </div>
+
+        <div class="flex items-center gap-2">
+          <!-- Subtle dot trigger for hidden admin -->
+          <span onclick="openAdminModal()" class="cursor-pointer hover:text-white select-none p-1" title="Founder portal">·</span>
+          <button onclick="openAdminModal()" class="opacity-50 hover:opacity-100 flex items-center gap-1 text-[11px] text-stone-400 hover:text-white">
+            <i data-lucide="lock" class="w-3 h-3"></i> Admin
+          </button>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- DONATION MODAL -->
+  <div id="donation-modal" class="hidden fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-[#FFFDF8] rounded-3xl max-w-lg w-full border border-[#E8E2D5] shadow-2xl p-6 sm:p-8 relative">
+      <button onclick="closeDonationModal()" class="absolute top-4 right-4 p-2 text-stone-400 hover:text-stone-700">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+
+      <div class="flex items-center gap-3 mb-4">
+        <div class="w-10 h-10 rounded-2xl bg-[#E07A5F]/15 text-[#E07A5F] flex items-center justify-center">
+          <i data-lucide="heart" class="w-5 h-5 fill-[#E07A5F]"></i>
+        </div>
+        <div>
+          <h3 class="font-serif-title text-xl font-bold text-[#2D3142]">Support Pherbies Rescue</h3>
+          <p class="text-xs text-[#2D3142]/70">Directly funds monthly vet bills, food & supplies</p>
+        </div>
+      </div>
+
+      <!-- Bank Info Box -->
+      <div class="p-4 bg-[#F8F5EE] rounded-2xl border border-[#E8E2D5] text-xs space-y-2 mb-4 font-mono">
+        <div class="font-bold text-[#5A7A6B] font-sans">Official Maybank Transfer:</div>
+        <div class="flex justify-between">
+          <span class="text-stone-500 font-sans">Bank:</span>
+          <span>Maybank Berhad</span>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-stone-500 font-sans">Name:</span>
+          <span>PHERBIES CAFE RESCUE</span>
+        </div>
+        <div class="flex justify-between items-center">
+          <span class="text-stone-500 font-sans">Account:</span>
+          <span class="font-bold text-[#E07A5F] text-sm">5123 4567 8901</span>
+        </div>
+      </div>
+
+      <!-- Quick Pledge Form -->
+      <form onsubmit="handleQuickPledge(event)" class="space-y-3 text-xs">
+        <div>
+          <label class="block font-bold text-[#2D3142] mb-1">Pledge Amount (MYR)</label>
+          <div class="grid grid-cols-4 gap-2 mb-2">
+            <button type="button" onclick="setPledgeAmount(15)" class="pledge-amt-btn p-2 rounded-xl border border-[#E8E2D5] font-bold hover:border-[#E07A5F]">RM 15</button>
+            <button type="button" onclick="setPledgeAmount(35)" class="pledge-amt-btn p-2 rounded-xl border border-[#E8E2D5] font-bold hover:border-[#E07A5F]">RM 35</button>
+            <button type="button" onclick="setPledgeAmount(50)" class="pledge-amt-btn p-2 rounded-xl border border-[#E07A5F] bg-[#E07A5F]/10 text-[#E07A5F] font-bold">RM 50</button>
+            <button type="button" onclick="setPledgeAmount(150)" class="pledge-amt-btn p-2 rounded-xl border border-[#E8E2D5] font-bold hover:border-[#E07A5F]">RM 150</button>
+          </div>
+          <input type="number" id="pledge-custom" placeholder="Or enter custom amount in RM" class="w-full px-3 py-2 rounded-xl border border-[#E8E2D5]">
+        </div>
+
+        <div>
+          <label class="block font-bold text-[#2D3142] mb-1">Your Name / Nickname</label>
+          <input type="text" id="pledge-name" placeholder="e.g. Farhan & Bella" class="w-full px-3 py-2 rounded-xl border border-[#E8E2D5]">
+        </div>
+
+        <div>
+          <label class="block font-bold text-[#2D3142] mb-1">Encouragement Note (Optional)</label>
+          <input type="text" id="pledge-msg" placeholder="e.g. Sending purrs to Ciko & Oyen!" class="w-full px-3 py-2 rounded-xl border border-[#E8E2D5]">
+        </div>
+
+        <button type="submit" class="w-full py-3 rounded-xl bg-[#E07A5F] hover:bg-[#C9664C] text-white font-bold text-sm transition-all shadow-sm">
+          Confirm Pledge (Updates Live Tracker)
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- CAT DETAIL MODAL -->
+  <div id="cat-modal" class="hidden fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-[#FFFDF8] rounded-3xl max-w-lg w-full border border-[#E8E2D5] shadow-2xl overflow-hidden relative">
+      <button onclick="closeCatModal()" class="absolute top-3 right-3 p-2 bg-black/50 text-white rounded-full z-10">
+        <i data-lucide="x" class="w-4 h-4"></i>
+      </button>
+      <div id="cat-modal-content">
+        <!-- Rendered via JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ADMIN PORTAL MODAL -->
+  <div id="admin-modal" class="hidden fixed inset-0 z-50 overflow-y-auto bg-black/70 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-[#FFFDF8] rounded-3xl max-w-3xl w-full border border-[#E8E2D5] shadow-2xl overflow-hidden my-6 flex flex-col max-h-[90vh]">
+      
+      <div class="p-5 bg-[#2D3142] text-white flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <i data-lucide="lock" class="w-5 h-5 text-[#E07A5F]"></i>
+          <h3 class="font-serif-title text-xl font-bold">Pherbies Admin Portal</h3>
+        </div>
+        <button onclick="closeAdminModal()" class="text-white hover:text-stone-300">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Login Screen -->
+      <div id="admin-login-screen" class="p-8 max-w-sm mx-auto w-full space-y-4 text-center">
+        <h4 class="font-serif-title text-xl font-bold text-[#2D3142]">Founder Sign In</h4>
+        <div id="admin-login-err" class="hidden p-2 text-xs bg-rose-50 text-rose-800 rounded">Invalid credentials</div>
+        <form onsubmit="handleAdminLogin(event)" class="space-y-3 text-left text-xs">
+          <div>
+            <label class="block font-bold mb-1">Username</label>
+            <input type="text" id="admin-user" placeholder="pherbiescute" class="w-full px-3 py-2 rounded-xl border border-[#E8E2D5]">
+          </div>
+          <div>
+            <label class="block font-bold mb-1">Password</label>
+            <input type="password" id="admin-pass" placeholder="pherbiescafecutie" class="w-full px-3 py-2 rounded-xl border border-[#E8E2D5]">
+          </div>
+          <button type="submit" class="w-full py-2.5 rounded-xl bg-[#E07A5F] text-white font-bold">
+            Sign In
+          </button>
+          <p class="text-[10px] text-stone-500 text-center">Credentials: pherbiescute / pherbiescafecutie</p>
+        </form>
+      </div>
+
+      <!-- Dashboard Screen -->
+      <div id="admin-dashboard-screen" class="hidden flex-1 overflow-y-auto p-6 space-y-6 text-xs">
+        <div class="flex justify-between items-center pb-3 border-b border-[#E8E2D5]">
+          <span class="font-bold text-sm text-[#2D3142]">Live Control Dashboard</span>
+          <button onclick="resetDefaults()" class="text-rose-600 hover:underline">
+            Reset to Default Demo Data
+          </button>
+        </div>
+
+        <!-- 1. Monthly Target & Current Raised -->
+        <div class="p-4 bg-[#F8F5EE] rounded-2xl border border-[#E8E2D5] space-y-3">
+          <h5 class="font-bold text-sm text-[#2D3142]">1. Monthly Target & Current Raised (MYR)</h5>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block mb-1 font-semibold">Monthly Goal (MYR):</label>
+              <input type="number" id="admin-target-input" onchange="updateImpactTarget(this.value)" class="w-full p-2 border rounded-lg bg-white font-bold">
+            </div>
+            <div>
+              <label class="block mb-1 font-semibold">Current Raised (MYR):</label>
+              <input type="number" id="admin-raised-input" onchange="updateImpactRaised(this.value)" class="w-full p-2 border rounded-lg bg-white font-bold text-[#E07A5F]">
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. Announcement Banner -->
+        <div class="p-4 bg-[#F8F5EE] rounded-2xl border border-[#E8E2D5] space-y-3">
+          <div class="flex justify-between items-center">
+            <h5 class="font-bold text-sm text-[#2D3142]">2. Broadcast Announcement Banner</h5>
+            <label class="flex items-center gap-1.5 cursor-pointer">
+              <input type="checkbox" id="admin-banner-toggle" onchange="toggleBannerAdmin(this.checked)">
+              <span>Enabled</span>
+            </label>
+          </div>
+          <div>
+            <label class="block mb-1 font-semibold">Banner Message:</label>
+            <input type="text" id="admin-banner-text" onchange="updateBannerText(this.value)" class="w-full p-2 border rounded-lg bg-white">
+          </div>
+        </div>
+
+        <!-- 3. Add Cat Profile -->
+        <div class="p-4 bg-[#F8F5EE] rounded-2xl border border-[#E8E2D5] space-y-3">
+          <h5 class="font-bold text-sm text-[#2D3142]">3. Add New Rescued Cat</h5>
+          <form onsubmit="handleAddCatAdmin(event)" class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            <input type="text" id="admin-cat-name" placeholder="Name" required class="p-2 border rounded-lg bg-white">
+            <input type="text" id="admin-cat-age" placeholder="Age (e.g. 1 Year)" required class="p-2 border rounded-lg bg-white">
+            <select id="admin-cat-gender" class="p-2 border rounded-lg bg-white">
+              <option value="Female">Female</option>
+              <option value="Male">Male</option>
+            </select>
+            <select id="admin-cat-status" class="p-2 border rounded-lg bg-white">
+              <option value="Up for Adoption">Up for Adoption</option>
+              <option value="Permanent Resident">Permanent Resident</option>
+              <option value="Medical Recovery">Medical Recovery</option>
+            </select>
+            <input type="url" id="admin-cat-photo" placeholder="Photo URL" class="col-span-2 p-2 border rounded-lg bg-white">
+            <textarea id="admin-cat-story" placeholder="Rescue story..." class="col-span-full p-2 border rounded-lg bg-white" rows="2"></textarea>
+            <button type="submit" class="col-span-full py-2 bg-[#2D3142] text-white font-bold rounded-lg">
+              Add Cat to Public Gallery
+            </button>
+          </form>
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+
+  <!-- JAVASCRIPT LOGIC -->
+  <script>
+    // Initial App Data State
+    const defaultData = {
+      impact: {
+        monthlyTarget: 3500,
+        currentRaised: 2680,
+        breakdown: { vetBills: 1450, catFood: 680, tofuLitter: 350, vitamins: 200 },
+        totalCatsRescued: 48,
+        totalTnrCount: 76,
+        activeColoniesMonitored: 5
+      },
+      banner: {
+        enabled: true,
+        text: "Pherbies Rescue Mission: 100% of cafe beverage sales this weekend support our upcoming Subang colony TNR spay drive!",
+        badge: "Rescue News"
+      },
+      cats: [
+        {
+          id: "cat-1",
+          name: "Pherbie",
+          estimatedAge: "3 Years",
+          gender: "Male",
+          status: "Permanent Resident",
+          photoUrl: "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&w=800&q=80",
+          rescueStory: "The founding mascot and namesake of our cafe. Rescued in 2023 shivering behind an alley wet market with a fractured tail and respiratory infection.",
+          personality: "Calm, regal, loves gentle chin scritches and greeting guests at the entrance.",
+          favoriteTreat: "Freeze-dried salmon cubes"
+        },
+        {
+          id: "cat-2",
+          name: "Mochi",
+          estimatedAge: "2 Years",
+          gender: "Female",
+          status: "Permanent Resident",
+          photoUrl: "https://images.unsplash.com/photo-1543852786-1cf6624b9987?auto=format&fit=crop&w=800&q=80",
+          rescueStory: "Saved during a torrential monsoon evening trapped in a roadside stormwater drain in Petaling Jaya. Purrs instantly when held.",
+          personality: "Extreme cuddler, will quietly climb onto your lap while you sip your matcha latte.",
+          favoriteTreat: "Goat milk puree"
+        },
+        {
+          id: "cat-3",
+          name: "Oyen (The Explorer)",
+          estimatedAge: "1.5 Years",
+          gender: "Male",
+          status: "Up for Adoption",
+          photoUrl: "https://images.unsplash.com/photo-1574158622682-e40e69881006?auto=format&fit=crop&w=800&q=80",
+          rescueStory: "Originally trapped during our neighborhood TNR mission. He gave headbutts to every vet nurse, proving he was ready for a forever indoor family.",
+          personality: "Cheeky, energetic, loves feather wands and chasing paper balls.",
+          favoriteTreat: "Chicken & pumpkin shreds"
+        },
+        {
+          id: "cat-4",
+          name: "Luna",
+          estimatedAge: "9 Months",
+          gender: "Female",
+          status: "Up for Adoption",
+          photoUrl: "https://images.unsplash.com/photo-1533738363-b7f9aef128ce?auto=format&fit=crop&w=800&q=80",
+          rescueStory: "Found alongside two littermates under an outdoor Mamak stall during a hot afternoon. Socialized with gentle cafe regulars.",
+          personality: "High-flying acrobat, inquisitive, adores warm sunny windowsill naps.",
+          favoriteTreat: "Crispy catnip biscuits"
+        },
+        {
+          id: "cat-5",
+          name: "Ciko",
+          estimatedAge: "4 Years",
+          gender: "Male",
+          status: "Medical Recovery",
+          photoUrl: "https://images.unsplash.com/photo-1561948955-570b270e7c36?auto=format&fit=crop&w=800&q=80",
+          rescueStory: "Rescued in August 2024 with a severely infected paw and tendon injury from wire fencing. Donations fund his ongoing laser therapy and joint care.",
+          personality: "Gentle soul with a deep, soothing purr. Prefers quiet corners and soft fleece blankets.",
+          favoriteTreat: "Tuna loin flakes"
+        },
+        {
+          id: "cat-6",
+          name: "Belacan",
+          estimatedAge: "2.5 Years",
+          gender: "Female",
+          status: "Permanent Resident",
+          photoUrl: "https://images.unsplash.com/photo-1518791841217-8f162f1e1131?auto=format&fit=crop&w=800&q=80",
+          rescueStory: "A feisty tortoiseshell who supervises barista espresso pulls through the observation glass.",
+          personality: "Opinionated, selective cuddler, master observer of the universe.",
+          favoriteTreat: "Freeze-dried duck liver"
+        }
+      ],
+      menu: [
+        {
+          name: "Pandan Gula Melaka Latte",
+          category: "Coffee & Drinks",
+          price: 14.50,
+          desc: "House espresso with freshly pressed pandan leaf extract, organic Gula Melaka, and velvety oat milk.",
+          tags: ["Signature", "Best Seller"],
+          img: "https://images.unsplash.com/photo-1517256064527-09c73fc73e38?auto=format&fit=crop&w=600&q=80"
+        },
+        {
+          name: "Matcha Strawberry Cloud Latte",
+          category: "Coffee & Drinks",
+          price: 16.00,
+          desc: "Uji ceremonial matcha over house-made strawberry compote and whipped coconut cream.",
+          tags: ["Vegan Option", "Signature"],
+          img: "https://images.unsplash.com/photo-1536256263959-770b48d82b0a?auto=format&fit=crop&w=600&q=80"
+        },
+        {
+          name: "Artisan Sourdough with Kaya & Butter",
+          category: "Pastries & Mains",
+          price: 12.00,
+          desc: "Toasted crusty sourdough with slow-cooked duck egg pandan kaya and creamy SCS butter.",
+          tags: ["Local Heritage"],
+          img: "https://images.unsplash.com/photo-1589367920969-ab8e050bbb04?auto=format&fit=crop&w=600&q=80"
+        },
+        {
+          name: "Truffle Mushroom Croissant Toastie",
+          category: "Pastries & Mains",
+          price: 18.50,
+          desc: "Butter croissant filled with sauteed king oyster mushrooms, Swiss gruyere, and white truffle oil.",
+          tags: ["Chef Pick"],
+          img: "https://images.unsplash.com/photo-1555507036-ab1f4038808a?auto=format&fit=crop&w=600&q=80"
+        },
+        {
+          name: "Freeze-Dried Pure Salmon Bites",
+          category: "Cat Treats",
+          price: 8.00,
+          desc: "100% human-grade wild salmon gently freeze-dried. Safe to hand-feed rescue cats in the lounge.",
+          tags: ["Vet Safe", "Kitty Approved"],
+          img: "https://images.unsplash.com/photo-1535930891776-0c2dfb7fda1a?auto=format&fit=crop&w=600&q=80"
+        }
+      ],
+      tnrLogs: [
+        {
+          date: "September 2024",
+          location: "Taman Melawati Wet Market Colony",
+          cats: 6,
+          notes: "4 females and 2 males spayed/neutered, rabies vaccinated, ear-tipped and returned.",
+          img: "https://images.unsplash.com/photo-1570824104453-508955ab713e?auto=format&fit=crop&w=600&q=80"
+        },
+        {
+          date: "August 2024",
+          location: "SS15 Subang Back-Alley Colony",
+          cats: 8,
+          notes: "Partnered with local shopkeepers. 8 cats spayed/neutered. Rescued kitten under medical rehab.",
+          img: "https://images.unsplash.com/photo-1533743983669-94fa5c4338ec?auto=format&fit=crop&w=600&q=80"
+        }
+      ],
+      donations: [
+        { name: "Farah & Imran", amount: 150, msg: "Sending love to dear Ciko! Get well soon brave paw." },
+        { name: "Wei Lun", amount: 50, msg: "For this month's tofu litter supply! Love visiting on weekends." },
+        { name: "Siti Nurhaliza Fan", amount: 100, msg: "Thank you for the incredible TNR work you do." }
+      ]
+    };
+
+    // Load from LocalStorage
+    let state = JSON.parse(localStorage.getItem('pherbies_standalone_v1')) || defaultData;
+    function saveState() {
+      localStorage.setItem('pherbies_standalone_v1', JSON.stringify(state));
+      renderAll();
+    }
+
+    let currentSelectedPledge = 50;
+
+    // Render Full UI
+    function renderAll() {
+      // Banner
+      const bannerEl = document.getElementById('announcement-banner');
+      if (state.banner && state.banner.enabled) {
+        bannerEl.classList.remove('hidden');
+        document.getElementById('banner-text').innerText = state.banner.text;
+        document.getElementById('banner-badge').innerText = state.banner.badge;
+      } else {
+        bannerEl.classList.add('hidden');
+      }
+
+      // Impact Tracker
+      const percent = Math.min(100, Math.round((state.impact.currentRaised / state.impact.monthlyTarget) * 100));
+      const rem = Math.max(0, state.impact.monthlyTarget - state.impact.currentRaised);
+      
+      document.getElementById('tracker-raised-amount').innerText = "RM " + state.impact.currentRaised.toLocaleString();
+      document.getElementById('tracker-target-amount').innerText = "raised of RM " + state.impact.monthlyTarget.toLocaleString();
+      document.getElementById('tracker-percentage').innerText = percent + "%";
+      document.getElementById('tracker-remaining').innerText = "RM " + rem.toLocaleString() + " remaining to reach target";
+      document.getElementById('tracker-progress-bar').style.width = percent + "%";
+
+      document.getElementById('hero-progress-text').innerText = "RM " + state.impact.currentRaised.toLocaleString() + " / RM " + state.impact.monthlyTarget.toLocaleString() + " (" + percent + "%)";
+      document.getElementById('hero-progress-fill').style.width = percent + "%";
+
+      // Stats
+      document.getElementById('stat-vet-amount').innerText = "RM " + state.impact.breakdown.vetBills;
+      document.getElementById('stat-food-amount').innerText = "RM " + state.impact.breakdown.catFood;
+      document.getElementById('stat-litter-amount').innerText = "RM " + state.impact.breakdown.tofuLitter;
+      document.getElementById('stat-vitamins-amount').innerText = "RM " + state.impact.breakdown.vitamins;
+
+      document.getElementById('stat-tnr-total').innerText = state.impact.totalTnrCount + "+";
+      document.getElementById('stat-rescues-total').innerText = state.impact.totalCatsRescued;
+      document.getElementById('stat-colonies-total').innerText = state.impact.activeColoniesMonitored;
+
+      // Donors
+      const donorsContainer = document.getElementById('donors-list');
+      donorsContainer.innerHTML = state.donations.map(d => `
+        <div class="p-3 rounded-xl bg-[#FBF9F3] border border-[#EFEAE0]">
+          <div class="flex justify-between font-bold text-xs mb-1">
+            <span>${d.name}</span>
+            <span class="text-[#E07A5F]">+RM ${d.amount}</span>
+          </div>
+          <p class="text-xs text-[#2D3142]/70 italic">"${d.msg}"</p>
+        </div>
+      `).join('');
+
+      // Cats
+      renderCats(state.cats);
+
+      // Menu
+      renderMenu(state.menu.filter(m => m.category === 'Coffee & Drinks'));
+
+      // TNR
+      const tnrContainer = document.getElementById('tnr-grid');
+      tnrContainer.innerHTML = state.tnrLogs.map(l => `
+        <div class="bg-[#FFFDF8] rounded-3xl border border-[#E8E2D5] p-5 flex flex-col sm:flex-row gap-4">
+          <img src="${l.img}" class="w-full sm:w-36 h-32 rounded-2xl object-cover">
+          <div class="flex-1 flex flex-col justify-between">
+            <div>
+              <div class="text-[11px] text-[#5A7A6B] font-semibold">${l.date} · Completed</div>
+              <h4 class="font-serif-title font-bold text-base text-[#2D3142]">${l.location}</h4>
+              <p class="text-xs text-[#2D3142]/70 mt-1">${l.notes}</p>
+            </div>
+            <div class="text-xs font-bold text-[#E07A5F] mt-2">${l.cats} cats neutered & vaccinated</div>
+          </div>
+        </div>
+      `).join('');
+
+      // Refresh Lucide Icons
+      if (window.lucide) {
+        window.lucide.createIcons();
+      }
+    }
+
+    function renderCats(catList) {
+      const container = document.getElementById('cats-grid');
+      container.innerHTML = catList.map(c => `
+        <div class="bg-[#FFFDF8] rounded-3xl border border-[#E8E2D5] overflow-hidden flex flex-col justify-between group hover:border-[#7A9A8B]/60 transition-all">
+          <div>
+            <div class="relative h-56 w-full cursor-pointer" onclick="showCatDetail('${c.id}')">
+              <img src="${c.photoUrl}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+              <div class="absolute top-3 left-3 bg-[#FFFDF8]/90 text-[11px] font-bold px-2 py-0.5 rounded-lg border border-[#E8E2D5]">
+                ${c.status}
+              </div>
+            </div>
+            <div class="p-5">
+              <div class="text-[11px] text-[#2D3142]/60 font-medium mb-1">${c.gender} · ${c.estimatedAge}</div>
+              <h3 class="font-serif-title text-xl font-bold text-[#2D3142]">${c.name}</h3>
+              <p class="text-xs text-[#2D3142]/70 mt-1.5 line-clamp-2">${c.rescueStory}</p>
+            </div>
+          </div>
+          <div class="p-5 pt-0">
+            <button onclick="showCatDetail('${c.id}')" class="text-xs font-semibold text-[#E07A5F] hover:underline">
+              Read Rescue Story →
+            </button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function renderMenu(items) {
+      const container = document.getElementById('menu-grid');
+      container.innerHTML = items.map(m => `
+        <div class="bg-[#FFFDF8] rounded-3xl border border-[#E8E2D5] overflow-hidden flex flex-col justify-between">
+          <div>
+            <img src="${m.img}" class="w-full h-44 object-cover">
+            <div class="p-5">
+              <div class="flex justify-between items-baseline mb-1">
+                <h4 class="font-serif-title font-bold text-base text-[#2D3142]">${m.name}</h4>
+                <span class="font-mono font-bold text-[#E07A5F]">RM ${m.price.toFixed(2)}</span>
+              </div>
+              <div class="text-[10px] text-[#5A7A6B] font-bold mb-2">${m.tags.join(' · ')}</div>
+              <p class="text-xs text-[#2D3142]/70">${m.desc}</p>
+            </div>
+          </div>
+          <div class="p-5 pt-0">
+            <a href="#reservations" class="block w-full py-2 text-center rounded-xl bg-[#F2ECE1] text-[#2D3142] text-xs font-semibold hover:bg-[#EAE0D2]">
+              Order in Table Booking
+            </a>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function filterCats(status) {
+      document.querySelectorAll('.cat-filter-btn').forEach(b => {
+        b.classList.remove('bg-[#FFFDF8]', 'text-[#2D3142]', 'shadow-sm');
+        b.classList.add('text-[#2D3142]/70');
+      });
+      event.target.classList.add('bg-[#FFFDF8]', 'text-[#2D3142]', 'shadow-sm');
+      if (status === 'All') {
+        renderCats(state.cats);
+      } else {
+        renderCats(state.cats.filter(c => c.status === status));
+      }
+    }
+
+    function filterMenu(category) {
+      document.querySelectorAll('.menu-tab-btn').forEach(b => {
+        b.classList.remove('bg-[#2D3142]', 'text-white');
+        b.classList.add('bg-[#FFFDF8]', 'text-[#2D3142]/75', 'border');
+      });
+      event.target.classList.add('bg-[#2D3142]', 'text-white');
+      event.target.classList.remove('bg-[#FFFDF8]', 'text-[#2D3142]/75');
+      renderMenu(state.menu.filter(m => m.category === category));
+    }
+
+    function showCatDetail(catId) {
+      const cat = state.cats.find(c => c.id === catId);
+      if (!cat) return;
+      document.getElementById('cat-modal-content').innerHTML = `
+        <img src="${cat.photoUrl}" class="w-full h-64 object-cover">
+        <div class="p-6 space-y-4 text-xs">
+          <div class="flex justify-between items-baseline">
+            <h3 class="font-serif-title text-2xl font-bold text-[#2D3142]">${cat.name}</h3>
+            <span class="font-bold text-[#5A7A6B]">${cat.status}</span>
+          </div>
+          <div class="grid grid-cols-2 gap-2 p-3 bg-[#F8F5EE] rounded-xl font-medium">
+            <div>Gender: <strong>${cat.gender}</strong></div>
+            <div>Estimated Age: <strong>${cat.estimatedAge}</strong></div>
+          </div>
+          <div>
+            <div class="font-bold text-[#5A7A6B] uppercase tracking-wider text-[10px] mb-1">Rescue Journey</div>
+            <p class="leading-relaxed text-[#2D3142]/80">${cat.rescueStory}</p>
+          </div>
+          <div>
+            <div class="font-bold text-[#E07A5F] uppercase tracking-wider text-[10px] mb-1">Personality</div>
+            <p class="leading-relaxed text-[#2D3142]/80">${cat.personality}</p>
+          </div>
+          <button onclick="closeCatModal(); openDonationModal();" class="w-full py-3 bg-[#E07A5F] text-white font-bold rounded-xl text-sm">
+            Sponsor ${cat.name}'s Medical Care
+          </button>
+        </div>
+      `;
+      document.getElementById('cat-modal').classList.remove('hidden');
+      if (window.lucide) window.lucide.createIcons();
+    }
+
+    function closeCatModal() {
+      document.getElementById('cat-modal').classList.add('hidden');
+    }
+
+    function dismissBanner() {
+      document.getElementById('announcement-banner').classList.add('hidden');
+    }
+
+    function openDonationModal() {
+      document.getElementById('donation-modal').classList.remove('hidden');
+      if (window.lucide) window.lucide.createIcons();
+    }
+    function closeDonationModal() {
+      document.getElementById('donation-modal').classList.add('hidden');
+    }
+
+    function setPledgeAmount(amt) {
+      currentSelectedPledge = amt;
+      document.getElementById('pledge-custom').value = '';
+    }
+
+    function handleQuickPledge(e) {
+      e.preventDefault();
+      const custom = document.getElementById('pledge-custom').value;
+      const finalAmt = custom ? parseFloat(custom) : currentSelectedPledge;
+      const name = document.getElementById('pledge-name').value.trim() || 'Generous Friend';
+      const msg = document.getElementById('pledge-msg').value.trim() || 'For the rescue kitties!';
+
+      state.impact.currentRaised += finalAmt;
+      state.impact.breakdown.vetBills += finalAmt;
+      state.donations.unshift({ name, amount: finalAmt, msg });
+      saveState();
+
+      closeDonationModal();
+      alert('Heartfelt thank you! RM ' + finalAmt + ' added to our live monthly impact goal!');
+    }
+
+    function handleReservationSubmit(e) {
+      e.preventDefault();
+      const name = document.getElementById('res-name').value;
+      const type = document.getElementById('res-type').value;
+      const date = document.getElementById('res-date').value;
+      const time = document.getElementById('res-time').value;
+      const guests = document.getElementById('res-guests').value;
+
+      document.getElementById('reservation-form').classList.add('hidden');
+      const box = document.getElementById('booking-confirmation-box');
+      box.classList.remove('hidden');
+      document.getElementById('booking-confirmation-details').innerHTML = `
+        Thank you <strong>${name}</strong>!<br>
+        Booking: <strong>${type}</strong> for ${guests} guests on <strong>${date} at ${time}</strong>.<br>
+        Reference Code: <strong>PHB-${Math.floor(1000 + Math.random() * 9000)}</strong>
+      `;
+    }
+
+    // Hidden Admin Trigger
+    let clickCount = 0;
+    function tripleClickAdmin() {
+      clickCount++;
+      if (clickCount >= 3) {
+        clickCount = 0;
+        openAdminModal();
+      }
+      setTimeout(() => clickCount = 0, 1200);
+    }
+
+    function openAdminModal() {
+      document.getElementById('admin-modal').classList.remove('hidden');
+      if (window.lucide) window.lucide.createIcons();
+    }
+    function closeAdminModal() {
+      document.getElementById('admin-modal').classList.add('hidden');
+    }
+
+    function handleAdminLogin(e) {
+      e.preventDefault();
+      const u = document.getElementById('admin-user').value;
+      const p = document.getElementById('admin-pass').value;
+      if (u === 'pherbiescute' && p === 'pherbiescafecutie') {
+        document.getElementById('admin-login-screen').classList.add('hidden');
+        document.getElementById('admin-dashboard-screen').classList.remove('hidden');
+        // Populate inputs
+        document.getElementById('admin-target-input').value = state.impact.monthlyTarget;
+        document.getElementById('admin-raised-input').value = state.impact.currentRaised;
+        document.getElementById('admin-banner-text').value = state.banner.text;
+        document.getElementById('admin-banner-toggle').checked = state.banner.enabled;
+      } else {
+        document.getElementById('admin-login-err').classList.remove('hidden');
+      }
+    }
+
+    function updateImpactTarget(val) {
+      state.impact.monthlyTarget = Number(val);
+      saveState();
+    }
+    function updateImpactRaised(val) {
+      state.impact.currentRaised = Number(val);
+      saveState();
+    }
+    function toggleBannerAdmin(checked) {
+      state.banner.enabled = checked;
+      saveState();
+    }
+    function updateBannerText(val) {
+      state.banner.text = val;
+      saveState();
+    }
+
+    function handleAddCatAdmin(e) {
+      e.preventDefault();
+      const newCat = {
+        id: 'cat-' + Date.now(),
+        name: document.getElementById('admin-cat-name').value,
+        estimatedAge: document.getElementById('admin-cat-age').value,
+        gender: document.getElementById('admin-cat-gender').value,
+        status: document.getElementById('admin-cat-status').value,
+        photoUrl: document.getElementById('admin-cat-photo').value || "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&w=800&q=80",
+        rescueStory: document.getElementById('admin-cat-story').value || "Rescued locally in Malaysia.",
+        personality: "Sweet & loving",
+        favoriteTreat: "Salmon paste"
+      };
+      state.cats.unshift(newCat);
+      saveState();
+      alert('Added ' + newCat.name + ' to gallery!');
+      e.target.reset();
+    }
+
+    function resetDefaults() {
+      if (confirm('Reset to original demo data?')) {
+        state = JSON.parse(JSON.stringify(defaultData));
+        saveState();
+        document.getElementById('admin-target-input').value = state.impact.monthlyTarget;
+        document.getElementById('admin-raised-input').value = state.impact.currentRaised;
+        alert('Reset complete.');
+      }
+    }
+
+    // Set default date for reservation
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    document.getElementById('res-date').value = tomorrow.toISOString().split('T')[0];
+
+    // Initial render
+    renderAll();
+  </script>
+</body>
+</html>

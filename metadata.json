@@ -1,0 +1,6 @@
+{
+  "name": "Pherbies Cafe - Cat Rescue & Cafe",
+  "description": "A dedicated cat rescue mission operating as a cozy cat cafe in Malaysia. Savor artisan coffee & pastries while supporting resident rescue cats, TNR operations, and medical care.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
