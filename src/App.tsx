@@ -17,6 +17,7 @@ import {
   subscribeToCafeState,
   saveCafeStateToFirestore,
 } from './firebase';
+import { ImageUploader } from './components/ImageUploader';
 
 const STORAGE_KEY = 'pherbies_cafe_state';
 
@@ -79,6 +80,31 @@ export default function App() {
   const [adminPass, setAdminPass] = useState('');
   const [adminLoginError, setAdminLoginError] = useState(false);
   const [activeAdminTab, setActiveAdminTab] = useState<'target' | 'cats' | 'menu' | 'missions' | 'orders'>('target');
+
+  // Clever Secret Admin Access Trigger (Triple-click within 1.2s)
+  const secretClickCount = React.useRef(0);
+  const secretClickTimer = React.useRef<any>(null);
+
+  const handleSecretTrigger = (e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    if (secretClickTimer.current) {
+      clearTimeout(secretClickTimer.current);
+    }
+    secretClickCount.current += 1;
+    if (secretClickCount.current >= 3) {
+      secretClickCount.current = 0;
+      setAdminOpen(true);
+      setAdminLoginError(false);
+      showToast('🐾 Staff Portal Unlocked');
+    } else {
+      secretClickTimer.current = setTimeout(() => {
+        secretClickCount.current = 0;
+      }, 1200);
+    }
+  };
 
   // Admin section sub-filters & manual entries
   const [orderFilter, setOrderFilter] = useState<'all' | 'Pending' | 'Preparing' | 'Ready' | 'Completed' | 'Cancelled'>('all');
@@ -162,6 +188,34 @@ export default function App() {
     return () => {
       unsubscribe();
       window.removeEventListener('storage', handleStorageChange);
+    };
+  }, []);
+
+  // Keyboard shortcut (Ctrl+Shift+A or Cmd+Shift+A or Ctrl+Shift+P) & #admin hash trigger
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key.toLowerCase() === 'a' || e.key.toLowerCase() === 'p')) {
+        e.preventDefault();
+        setAdminOpen(true);
+        setAdminLoginError(false);
+        showToast('🐾 Staff Portal Access');
+      }
+    };
+
+    const checkHash = () => {
+      if (window.location.hash === '#admin') {
+        setAdminOpen(true);
+        setAdminLoginError(false);
+        window.history.replaceState(null, '', window.location.pathname + window.location.search);
+      }
+    };
+
+    checkHash();
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('hashchange', checkHash);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('hashchange', checkHash);
     };
   }, []);
 
@@ -361,8 +415,12 @@ export default function App() {
       <header className="sticky top-0 z-40 bg-[#FFFBF5]/90 backdrop-blur-md border-b border-amber-900/10 transition-all duration-300">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
           
-          {/* Logo */}
-          <a href="#" className="flex items-center gap-2 group">
+          {/* Logo with Secret 3-Click Admin Trigger */}
+          <div
+            onClick={handleSecretTrigger}
+            className="flex items-center gap-2 group cursor-pointer select-none"
+            title="Pherbies Cafe"
+          >
             <span className="text-3xl transition-transform duration-300 group-hover:scale-110 group-hover:rotate-12 inline-block">
               🐾
             </span>
@@ -374,7 +432,7 @@ export default function App() {
                 Rescue • TNR • Coffee
               </span>
             </div>
-          </a>
+          </div>
 
           {/* Desktop Nav Links */}
           <nav className="hidden md:flex items-center gap-6 font-medium text-sm text-[#3E2723]/80">
@@ -404,16 +462,6 @@ export default function App() {
                   {totalCartQty}
                 </span>
               )}
-            </button>
-            <button
-              onClick={() => {
-                setAdminOpen(true);
-                setAdminLoginError(false);
-              }}
-              className="p-2.5 bg-[#FFFBF5] border border-[#3E2723]/15 rounded-full hover:bg-amber-100/50 transition-colors cursor-pointer text-[#3E2723]/70 hover:text-[#3E2723]"
-              title="Staff Portal & Live Editor"
-            >
-              <i className="fa-solid fa-gear text-sm"></i>
             </button>
           </div>
 
@@ -478,17 +526,6 @@ export default function App() {
             >
               Donations
             </a>
-            <button
-              onClick={() => {
-                setMobileMenuOpen(false);
-                setAdminOpen(true);
-                setAdminLoginError(false);
-              }}
-              className="w-full text-left py-2 text-[#E56B6B] font-bold flex items-center justify-between"
-            >
-              <span>Staff Admin Portal</span>
-              <i className="fa-solid fa-gear"></i>
-            </button>
             <a
               href="#donate"
               onClick={() => setMobileMenuOpen(false)}
@@ -1045,24 +1082,24 @@ export default function App() {
           </div>
 
           <div className="pt-8 border-t border-white/10 flex flex-col sm:flex-row justify-between items-center text-xs text-amber-100/50 gap-4">
-            <p>© {new Date().getFullYear()} Pherbies Cafe. Built with ❤️ for stray cats in Malaysia.</p>
+            <p>
+              © {new Date().getFullYear()} Pherbies Cafe. Built with{' '}
+              <span
+                onClick={handleSecretTrigger}
+                className="cursor-pointer select-none inline-block hover:scale-125 transition-transform"
+                title="Pherbies Rescue"
+              >
+                ❤️
+              </span>{' '}
+              for stray cats in Malaysia.
+            </p>
             
-            {/* ADMIN TRIGGER & CLOUD STATUS */}
+            {/* Real-time Cloud Status */}
             <div className="flex items-center gap-3">
               <span className="flex items-center gap-1.5 text-[11px] text-amber-100/60 font-medium">
                 <span className={`w-2 h-2 rounded-full ${syncStatus === 'synced' ? 'bg-emerald-400' : 'bg-amber-400 animate-pulse'}`}></span>
                 {syncStatus === 'synced' ? 'Cloud Synced' : 'Syncing...'}
               </span>
-              <button
-                onClick={() => {
-                  setAdminOpen(true);
-                  setAdminLoginError(false);
-                }}
-                title="Pherbies Staff Admin Portal"
-                className="text-amber-100/60 hover:text-white transition-colors focus:outline-hidden text-xs flex items-center gap-1.5 bg-white/10 hover:bg-white/20 px-2.5 py-1 rounded-lg cursor-pointer"
-              >
-                <i className="fa-solid fa-lock text-[10px]"></i> Staff Portal
-              </button>
             </div>
           </div>
         </div>
@@ -1193,7 +1230,7 @@ export default function App() {
                     type="text"
                     value={adminUser}
                     onChange={(e) => setAdminUser(e.target.value)}
-                    placeholder="pherbiescute"
+                    placeholder="Enter staff username"
                     className="w-full px-3.5 py-2 text-sm rounded-xl border border-amber-900/15 focus:outline-hidden focus:ring-2 focus:ring-[#FF8A8A]"
                     required
                   />
@@ -1206,7 +1243,7 @@ export default function App() {
                     type="password"
                     value={adminPass}
                     onChange={(e) => setAdminPass(e.target.value)}
-                    placeholder="••••••••••••••••"
+                    placeholder="Enter staff password"
                     className="w-full px-3.5 py-2 text-sm rounded-xl border border-amber-900/15 focus:outline-hidden focus:ring-2 focus:ring-[#FF8A8A]"
                     required
                   />
@@ -1232,10 +1269,6 @@ export default function App() {
                   >
                     Login
                   </button>
-                </div>
-
-                <div className="p-2.5 bg-amber-50 rounded-xl border border-amber-900/10 text-[10px] text-[#3E2723]/70 text-center">
-                  Demo credentials: <span className="font-mono text-[#E56B6B]">pherbiescute</span> / <span className="font-mono text-[#E56B6B]">pherbiescafecutie</span>
                 </div>
               </form>
             </div>
@@ -1623,26 +1656,26 @@ export default function App() {
                                     className="w-full p-2 border border-amber-900/15 rounded-xl text-xs bg-[#FFFBF5]"
                                   />
                                 </div>
+                              </div>
 
-                                <div>
-                                  <label className="block text-[10px] font-bold uppercase text-[#3E2723]/60 mb-0.5">Image URL</label>
-                                  <input
-                                    type="text"
-                                    value={cat.image}
-                                    onChange={(e) => {
-                                      const copy = [...appState.cats];
-                                      copy[idx].image = e.target.value;
-                                      updateState((prev) => ({ ...prev, cats: copy }));
-                                    }}
-                                    placeholder="https://..."
-                                    className="w-full p-2 border border-amber-900/15 rounded-xl text-xs bg-[#FFFBF5]"
-                                  />
-                                </div>
+                              {/* Direct Device Image Upload */}
+                              <div>
+                                <ImageUploader
+                                  currentImage={cat.image}
+                                  onImageChange={(newImg) => {
+                                    const copy = [...appState.cats];
+                                    copy[idx].image = newImg;
+                                    updateState((prev) => ({ ...prev, cats: copy }));
+                                    showToast(`Photo updated for ${cat.name}! 📸`);
+                                  }}
+                                  label="Cat Photo (Direct Device Upload)"
+                                  placeholderText="Upload cat photo from your phone or PC"
+                                />
                               </div>
 
                               {/* Quick Photo Selector Buttons */}
                               <div className="flex flex-wrap items-center gap-1.5 pt-1">
-                                <span className="text-[10px] text-[#3E2723]/60 font-semibold mr-1">Photo Presets:</span>
+                                <span className="text-[10px] text-[#3E2723]/60 font-semibold mr-1">Or choose sample photo:</span>
                                 {CAT_IMAGE_PRESETS.map((p) => (
                                   <button
                                     key={p.label}
@@ -1853,26 +1886,26 @@ export default function App() {
                                       placeholder="Ingredients or culinary notes..."
                                     />
                                   </div>
+                                </div>
 
-                                  <div>
-                                    <label className="block text-[10px] font-bold uppercase text-[#3E2723]/60 mb-0.5">Image URL</label>
-                                    <input
-                                      type="text"
-                                      value={item.image}
-                                      onChange={(e) => {
-                                        const copy = [...appState.menu];
-                                        copy[originalIdx].image = e.target.value;
-                                        updateState((prev) => ({ ...prev, menu: copy }));
-                                      }}
-                                      className="w-full p-2 border border-amber-900/15 rounded-xl text-xs bg-[#FFFBF5]"
-                                      placeholder="https://..."
-                                    />
-                                  </div>
+                                {/* Direct Device Image Upload */}
+                                <div>
+                                  <ImageUploader
+                                    currentImage={item.image}
+                                    onImageChange={(newImg) => {
+                                      const copy = [...appState.menu];
+                                      copy[originalIdx].image = newImg;
+                                      updateState((prev) => ({ ...prev, menu: copy }));
+                                      showToast(`Image updated for ${item.title}! 🍽️`);
+                                    }}
+                                    label="Item Photo (Direct Device Upload)"
+                                    placeholderText="Upload food/beverage photo from your device"
+                                  />
                                 </div>
 
                                 {/* Preset Image Buttons */}
                                 <div className="flex flex-wrap items-center gap-1.5 pt-1">
-                                  <span className="text-[10px] text-[#3E2723]/60 font-semibold mr-1">Food Presets:</span>
+                                  <span className="text-[10px] text-[#3E2723]/60 font-semibold mr-1">Or choose sample photo:</span>
                                   {MENU_IMAGE_PRESETS.map((p) => (
                                     <button
                                       key={p.label}
@@ -2030,24 +2063,24 @@ export default function App() {
                                 </div>
                               </div>
 
+                              {/* Direct Device Image Upload */}
                               <div>
-                                <label className="block text-[10px] font-bold uppercase text-[#3E2723]/60 mb-0.5">Image URL</label>
-                                <input
-                                  type="text"
-                                  value={m.image}
-                                  onChange={(e) => {
+                                <ImageUploader
+                                  currentImage={m.image}
+                                  onImageChange={(newImg) => {
                                     const copy = [...appState.missions];
-                                    copy[idx].image = e.target.value;
+                                    copy[idx].image = newImg;
                                     updateState((prev) => ({ ...prev, missions: copy }));
+                                    showToast(`Photo updated for ${m.title}! 🏥`);
                                   }}
-                                  className="w-full p-2 border border-amber-900/15 rounded-xl text-xs bg-[#FFFBF5]"
-                                  placeholder="https://..."
+                                  label="TNR / Rescue Operation Photo (Direct Device Upload)"
+                                  placeholderText="Upload clinic, colony, or rescue photo from your device"
                                 />
                               </div>
 
                               {/* Presets */}
                               <div className="flex flex-wrap items-center gap-1.5 pt-1">
-                                <span className="text-[10px] text-[#3E2723]/60 font-semibold mr-1">TNR Presets:</span>
+                                <span className="text-[10px] text-[#3E2723]/60 font-semibold mr-1">Or choose sample photo:</span>
                                 {TNR_IMAGE_PRESETS.map((p) => (
                                   <button
                                     key={p.label}
