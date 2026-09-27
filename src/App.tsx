@@ -13,8 +13,36 @@ import {
   OrderItem,
   DonationItem,
 } from './data/defaultData';
+import {
+  subscribeToCafeState,
+  saveCafeStateToFirestore,
+} from './firebase';
 
 const STORAGE_KEY = 'pherbies_cafe_state';
+
+// Quick Preset Images for effortless admin editing
+const CAT_IMAGE_PRESETS = [
+  { label: 'Orange Tabby', url: 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&w=600&q=80' },
+  { label: 'Calico Cat', url: 'https://images.unsplash.com/photo-1573865526739-10659fec78a5?auto=format&fit=crop&w=600&q=80' },
+  { label: 'Black Cat', url: 'https://images.unsplash.com/photo-1518791841217-8f162f1e1131?auto=format&fit=crop&w=600&q=80' },
+  { label: 'Kitten', url: 'https://images.unsplash.com/photo-1533738363-b7f9aef128ce?auto=format&fit=crop&w=600&q=80' },
+  { label: 'Fluffy White', url: 'https://images.unsplash.com/photo-1495360010541-f48722b34f7d?auto=format&fit=crop&w=600&q=80' },
+  { label: 'Grey Shorthair', url: 'https://images.unsplash.com/photo-1513360371669-4adf3dd7dff8?auto=format&fit=crop&w=600&q=80' },
+];
+
+const MENU_IMAGE_PRESETS = [
+  { label: 'Latte Art', url: 'https://images.unsplash.com/photo-1534778101976-62847782c213?auto=format&fit=crop&w=500&q=80' },
+  { label: 'Matcha Cloud', url: 'https://images.unsplash.com/photo-1536256263959-770b48d82b0a?auto=format&fit=crop&w=500&q=80' },
+  { label: 'Sourdough Toast', url: 'https://images.unsplash.com/photo-1525351484163-7529414344d8?auto=format&fit=crop&w=500&q=80' },
+  { label: 'Croissant / Pastry', url: 'https://images.unsplash.com/photo-1555507036-ab1f4038808a?auto=format&fit=crop&w=500&q=80' },
+  { label: 'Cat Treat Feast', url: 'https://images.unsplash.com/photo-1583337130417-3346a1be7dee?auto=format&fit=crop&w=500&q=80' },
+];
+
+const TNR_IMAGE_PRESETS = [
+  { label: 'Rescue Drive', url: 'https://images.unsplash.com/photo-1548802673-380ab8ebc7b7?auto=format&fit=crop&w=600&q=80' },
+  { label: 'Vet Clinic', url: 'https://images.unsplash.com/photo-1628009368231-7bb3cfc38291?auto=format&fit=crop&w=600&q=80' },
+  { label: 'Community Colony', url: 'https://images.unsplash.com/photo-1513360371669-4adf3dd7dff8?auto=format&fit=crop&w=600&q=80' },
+];
 
 export default function App() {
   // Application State initialized from localStorage or defaults
@@ -29,6 +57,10 @@ export default function App() {
     }
     return DEFAULT_DATA;
   });
+
+  // Cloud Sync Status: 'connecting' | 'synced' | 'saving' | 'error'
+  const [syncStatus, setSyncStatus] = useState<'connecting' | 'synced' | 'saving' | 'error'>('connecting');
+  const [isSavingSection, setIsSavingSection] = useState(false);
 
   // Cart State
   const [cart, setCart] = useState<{ item: MenuItem; qty: number }[]>([]);
@@ -47,6 +79,13 @@ export default function App() {
   const [adminPass, setAdminPass] = useState('');
   const [adminLoginError, setAdminLoginError] = useState(false);
   const [activeAdminTab, setActiveAdminTab] = useState<'target' | 'cats' | 'menu' | 'missions' | 'orders'>('target');
+
+  // Admin section sub-filters & manual entries
+  const [orderFilter, setOrderFilter] = useState<'all' | 'Pending' | 'Preparing' | 'Ready' | 'Completed' | 'Cancelled'>('all');
+  const [activeLogSubTab, setActiveLogSubTab] = useState<'orders' | 'donations'>('orders');
+  const [manualDonorName, setManualDonorName] = useState('');
+  const [manualDonorAmount, setManualDonorAmount] = useState<number>(50);
+  const [manualDonorNote, setManualDonorNote] = useState('Direct Bank Transfer');
 
   // Donation Form State
   const [customAmount, setCustomAmount] = useState<number | string>(50);
@@ -68,7 +107,7 @@ export default function App() {
     }, 3500);
   };
 
-  // Synchronize state changes to localStorage
+  // Synchronize state changes to localStorage and Cloud Firestore
   const updateState = (updater: (prev: AppState) => AppState) => {
     setAppState((prev) => {
       const next = updater(prev);
@@ -77,12 +116,38 @@ export default function App() {
       } catch (err) {
         console.error('Failed to save to localStorage:', err);
       }
+      setSyncStatus('saving');
+      saveCafeStateToFirestore(next)
+        .then(() => {
+          setSyncStatus('synced');
+        })
+        .catch((err) => {
+          console.error('Failed to sync to Firestore:', err);
+          setSyncStatus('error');
+        });
       return next;
     });
   };
 
-  // Cross-tab synchronization
+  // Real-time Firestore synchronization: listening for changes across all devices/servers
   useEffect(() => {
+    const unsubscribe = subscribeToCafeState(
+      (remoteState) => {
+        setAppState(remoteState);
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(remoteState));
+        } catch (e) {
+          console.error('Error writing to localStorage cache:', e);
+        }
+        setSyncStatus('synced');
+      },
+      (err) => {
+        console.warn('Real-time connection notice:', err);
+        setSyncStatus('error');
+      }
+    );
+
+    // Cross-tab storage change listener as immediate local fallback
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === STORAGE_KEY && e.newValue) {
         try {
@@ -93,8 +158,29 @@ export default function App() {
       }
     };
     window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
+
+    return () => {
+      unsubscribe();
+      window.removeEventListener('storage', handleStorageChange);
+    };
   }, []);
+
+  // Explicit Save to Cloud handler for admin buttons
+  const handleForceSave = async () => {
+    setIsSavingSection(true);
+    setSyncStatus('saving');
+    try {
+      await saveCafeStateToFirestore(appState);
+      setSyncStatus('synced');
+      showToast('✅ Saved & live across all devices and servers!');
+    } catch (err) {
+      console.error(err);
+      setSyncStatus('error');
+      showToast('⚠️ Could not sync changes to Cloud. Retrying automatically...');
+    } finally {
+      setIsSavingSection(false);
+    }
+  };
 
   // Cart Functions
   const addToCart = (item: MenuItem) => {
@@ -319,6 +405,16 @@ export default function App() {
                 </span>
               )}
             </button>
+            <button
+              onClick={() => {
+                setAdminOpen(true);
+                setAdminLoginError(false);
+              }}
+              className="p-2.5 bg-[#FFFBF5] border border-[#3E2723]/15 rounded-full hover:bg-amber-100/50 transition-colors cursor-pointer text-[#3E2723]/70 hover:text-[#3E2723]"
+              title="Staff Portal & Live Editor"
+            >
+              <i className="fa-solid fa-gear text-sm"></i>
+            </button>
           </div>
 
           {/* Mobile Navigation Hamburger */}
@@ -382,6 +478,17 @@ export default function App() {
             >
               Donations
             </a>
+            <button
+              onClick={() => {
+                setMobileMenuOpen(false);
+                setAdminOpen(true);
+                setAdminLoginError(false);
+              }}
+              className="w-full text-left py-2 text-[#E56B6B] font-bold flex items-center justify-between"
+            >
+              <span>Staff Admin Portal</span>
+              <i className="fa-solid fa-gear"></i>
+            </button>
             <a
               href="#donate"
               onClick={() => setMobileMenuOpen(false)}
@@ -940,18 +1047,21 @@ export default function App() {
           <div className="pt-8 border-t border-white/10 flex flex-col sm:flex-row justify-between items-center text-xs text-amber-100/50 gap-4">
             <p>© {new Date().getFullYear()} Pherbies Cafe. Built with ❤️ for stray cats in Malaysia.</p>
             
-            {/* DISCRETELY HIDDEN ADMIN TRIGGER */}
-            <div className="flex items-center gap-2">
-              <span>Crafted for Cat Welfare</span>
+            {/* ADMIN TRIGGER & CLOUD STATUS */}
+            <div className="flex items-center gap-3">
+              <span className="flex items-center gap-1.5 text-[11px] text-amber-100/60 font-medium">
+                <span className={`w-2 h-2 rounded-full ${syncStatus === 'synced' ? 'bg-emerald-400' : 'bg-amber-400 animate-pulse'}`}></span>
+                {syncStatus === 'synced' ? 'Cloud Synced' : 'Syncing...'}
+              </span>
               <button
                 onClick={() => {
                   setAdminOpen(true);
                   setAdminLoginError(false);
                 }}
-                title="Staff Portal"
-                className="text-amber-100/20 hover:text-amber-100/60 transition-colors focus:outline-hidden text-[10px] ml-2 cursor-pointer"
+                title="Pherbies Staff Admin Portal"
+                className="text-amber-100/60 hover:text-white transition-colors focus:outline-hidden text-xs flex items-center gap-1.5 bg-white/10 hover:bg-white/20 px-2.5 py-1 rounded-lg cursor-pointer"
               >
-                <i className="fa-solid fa-lock text-[8px]"></i> ⚙️
+                <i className="fa-solid fa-lock text-[10px]"></i> Staff Portal
               </button>
             </div>
           </div>
@@ -1130,408 +1240,865 @@ export default function App() {
               </form>
             </div>
           ) : (
-            /* Step 2: Full Admin Management Dashboard */
-            <div className="bg-[#FFFBF5] max-w-5xl w-full max-h-[90vh] rounded-3xl border border-amber-900/10 shadow-2xl flex flex-col overflow-hidden">
-              {/* Topbar */}
-              <div className="bg-[#3E2723] text-white px-6 py-4 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="text-xl">🐾</span>
+            /* Step 2: Full Admin Management Dashboard for all 5 Sections */
+            <div className="bg-[#FFFBF5] max-w-5xl w-full max-h-[92vh] rounded-3xl border border-amber-900/10 shadow-2xl flex flex-col overflow-hidden">
+              {/* Topbar with Real-Time Cloud Status */}
+              <div className="bg-[#3E2723] text-white px-5 sm:px-6 py-4 flex flex-wrap items-center justify-between gap-3 border-b border-white/10 shrink-0">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-[#E56B6B]/20 border border-[#E56B6B]/40 flex items-center justify-center text-xl">
+                    🐾
+                  </div>
                   <div>
-                    <h3 className="heading-font font-bold text-lg leading-tight">
-                      Pherbies Cafe Admin Portal
-                    </h3>
-                    <span className="text-[10px] text-amber-200/80 uppercase font-semibold tracking-wider">
-                      Live Shared State Editor
+                    <div className="flex items-center gap-2">
+                      <h3 className="heading-font font-bold text-lg sm:text-xl leading-tight">
+                        Pherbies Cafe Admin Portal
+                      </h3>
+                      {syncStatus === 'synced' && (
+                        <span className="hidden sm:inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                          Live Cloud Synced
+                        </span>
+                      )}
+                      {syncStatus === 'saving' && (
+                        <span className="hidden sm:inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                          <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-spin"></span>
+                          Syncing...
+                        </span>
+                      )}
+                      {syncStatus === 'error' && (
+                        <span className="hidden sm:inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-red-500/20 text-red-300 border border-red-500/30">
+                          ⚠️ Cloud Offline
+                        </span>
+                      )}
+                    </div>
+                    <span className="text-[11px] text-amber-200/80 font-medium">
+                      Multi-Device Shared Database • Edits appear live on all visitors' screens
                     </span>
                   </div>
                 </div>
-                <div className="flex items-center gap-3">
+
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleForceSave}
+                    disabled={isSavingSection}
+                    className="text-xs bg-[#FF8A8A] hover:bg-[#E56B6B] text-white px-3.5 py-2 rounded-xl font-bold shadow-md shadow-brand-pink/20 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                    title="Force broadcast current data to all devices"
+                  >
+                    <i className={`fa-solid ${isSavingSection ? 'fa-spinner fa-spin' : 'fa-cloud-arrow-up'}`}></i>
+                    <span>{isSavingSection ? 'Saving...' : 'Save & Broadcast'}</span>
+                  </button>
                   <button
                     onClick={handleResetToDefaults}
-                    className="text-xs bg-amber-800/60 hover:bg-amber-800 text-amber-100 px-3 py-1.5 rounded-lg border border-amber-700/50 transition-colors cursor-pointer"
+                    className="text-xs bg-white/10 hover:bg-white/20 text-amber-100 px-3 py-2 rounded-xl border border-white/10 transition-colors cursor-pointer"
+                    title="Reset to initial default demo data"
                   >
-                    Reset All Defaults
+                    Reset Defaults
                   </button>
                   <button
                     onClick={() => setAdminOpen(false)}
-                    className="text-white/70 hover:text-white p-1 cursor-pointer"
+                    className="text-white/70 hover:text-white p-2 rounded-xl hover:bg-white/10 transition-colors cursor-pointer"
+                    aria-label="Close Admin Modal"
                   >
-                    <i className="fa-solid fa-xmark text-xl"></i>
+                    <i className="fa-solid fa-xmark text-lg"></i>
                   </button>
                 </div>
               </div>
 
-              {/* Nav Tabs */}
-              <div className="bg-amber-100/50 border-b border-amber-900/10 px-6 flex gap-2 overflow-x-auto shrink-0">
+              {/* Navigation Tabs - 5 Sections */}
+              <div className="bg-amber-100/60 border-b border-amber-900/10 px-4 sm:px-6 flex gap-1 sm:gap-2 overflow-x-auto shrink-0 py-1">
                 {[
-                  { id: 'target', label: 'Fund Goal' },
-                  { id: 'cats', label: 'Cat Profiles' },
-                  { id: 'menu', label: 'Menu Items' },
-                  { id: 'missions', label: 'TNR Updates' },
-                  { id: 'orders', label: 'Orders & Logs' },
+                  { id: 'target', label: '1. Fund Goal', icon: 'fa-bullseye', count: `RM ${appState.fund.raised}` },
+                  { id: 'cats', label: '2. Cat Profiles', icon: 'fa-cat', count: appState.cats.length },
+                  { id: 'menu', label: '3. Menu Items', icon: 'fa-mug-hot', count: appState.menu.length },
+                  { id: 'missions', label: '4. TNR Updates', icon: 'fa-notes-medical', count: appState.missions.length },
+                  { id: 'orders', label: '5. Orders & Logs', icon: 'fa-receipt', count: (appState.orders?.length || 0) + (appState.donations?.length || 0) },
                 ].map((tab) => (
                   <button
                     key={tab.id}
                     onClick={() => setActiveAdminTab(tab.id as any)}
-                    className={`py-3 px-4 text-xs font-bold border-b-2 cursor-pointer transition-colors whitespace-nowrap ${
+                    className={`py-2.5 px-3.5 text-xs font-bold rounded-xl cursor-pointer transition-all whitespace-nowrap flex items-center gap-2 ${
                       activeAdminTab === tab.id
-                        ? 'border-[#FF8A8A] text-[#E56B6B]'
-                        : 'border-transparent text-[#3E2723]/70 hover:text-[#3E2723]'
+                        ? 'bg-white text-[#E56B6B] shadow-xs border border-amber-900/10'
+                        : 'text-[#3E2723]/70 hover:text-[#3E2723] hover:bg-white/50'
                     }`}
                   >
-                    {tab.label}
+                    <i className={`fa-solid ${tab.icon} ${activeAdminTab === tab.id ? 'text-[#E56B6B]' : 'text-[#3E2723]/50'}`}></i>
+                    <span>{tab.label}</span>
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-mono ${
+                      activeAdminTab === tab.id ? 'bg-[#FF8A8A]/15 text-[#E56B6B]' : 'bg-[#3E2723]/10 text-[#3E2723]/70'
+                    }`}>
+                      {tab.count}
+                    </span>
                   </button>
                 ))}
               </div>
 
-              {/* Content Panel */}
-              <div className="p-6 overflow-y-auto grow space-y-6">
-                {/* TAB 1: Fund Goal */}
-                {activeAdminTab === 'target' && (
-                  <div className="space-y-4">
-                    <h4 className="font-bold text-base text-[#3E2723] border-b border-amber-900/10 pb-2">
-                      Edit Monthly Rescue Goal & Tracker
-                    </h4>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-xs font-bold text-[#3E2723]/80 mb-1">
-                          Monthly Target Amount (RM)
-                        </label>
-                        <input
-                          type="number"
-                          value={appState.fund.target}
-                          onChange={(e) => {
-                            const val = Number(e.target.value);
-                            updateState((prev) => ({
-                              ...prev,
-                              fund: { ...prev.fund, target: val },
-                            }));
-                          }}
-                          className="w-full p-2.5 rounded-xl border border-amber-900/15 text-sm bg-white font-bold"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-bold text-[#3E2723]/80 mb-1">
-                          Current Collected Amount (RM)
-                        </label>
-                        <input
-                          type="number"
-                          value={appState.fund.raised}
-                          onChange={(e) => {
-                            const val = Number(e.target.value);
-                            updateState((prev) => ({
-                              ...prev,
-                              fund: { ...prev.fund, raised: val },
-                            }));
-                          }}
-                          className="w-full p-2.5 rounded-xl border border-amber-900/15 text-sm bg-white font-bold text-[#E56B6B]"
-                        />
-                      </div>
-                    </div>
-                    <p className="text-xs text-[#3E2723]/60">
-                      Changes immediately update the hero progress bar and calculations!
-                    </p>
-                  </div>
-                )}
+              {/* Content Panel for 5 Sections */}
+              <div className="p-4 sm:p-6 overflow-y-auto grow space-y-6">
 
-                {/* TAB 2: Cat Profiles */}
-                {activeAdminTab === 'cats' && (
-                  <div className="space-y-4">
-                    <div className="flex justify-between items-center border-b border-amber-900/10 pb-2">
-                      <h4 className="font-bold text-base text-[#3E2723]">Manage Resident Cats</h4>
+                {/* ========================================================= */}
+                {/* SECTION 1: Fund Goal                                     */}
+                {/* ========================================================= */}
+                {activeAdminTab === 'target' && (
+                  <div className="space-y-6">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-amber-900/10 gap-2">
+                      <div>
+                        <h4 className="font-bold text-base text-[#3E2723] flex items-center gap-2">
+                          <i className="fa-solid fa-bullseye text-[#E56B6B]"></i> Monthly Rescue Fund Goal & Live Tracker
+                        </h4>
+                        <p className="text-xs text-[#3E2723]/60">
+                          Updates the live thermometer, breakdown meters, and percentage on all visitors' devices in real-time.
+                        </p>
+                      </div>
                       <button
-                        onClick={() => {
-                          const newCat: CatItem = {
-                            id: Date.now(),
-                            name: 'New Rescue',
-                            age: '1 Yr',
-                            backstory: 'Saved from street conditions.',
-                            personality: 'Friendly',
-                            status: 'Resident Ambassador',
-                            image:
-                              'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&w=600&q=80',
-                          };
-                          updateState((prev) => ({
-                            ...prev,
-                            cats: [...prev.cats, newCat],
-                          }));
-                          showToast('Added new resident cat!');
-                        }}
-                        className="bg-[#689F38] text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-emerald-700 cursor-pointer"
+                        onClick={handleForceSave}
+                        className="bg-[#689F38] hover:bg-emerald-700 text-white text-xs font-bold px-3.5 py-2 rounded-xl flex items-center gap-1.5 cursor-pointer self-start sm:self-auto"
                       >
-                        + Add Cat
+                        <i className="fa-solid fa-check"></i> Save Fund Goal
                       </button>
                     </div>
 
-                    <div className="space-y-3">
+                    {/* Inputs */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="bg-white p-4 rounded-2xl border border-amber-900/10 space-y-2">
+                        <label className="block text-xs font-bold text-[#3E2723] uppercase tracking-wider">
+                          Monthly Goal Target (RM)
+                        </label>
+                        <div className="relative">
+                          <span className="absolute left-3.5 top-2.5 text-xs font-bold text-[#3E2723]/50">RM</span>
+                          <input
+                            type="number"
+                            min="100"
+                            step="50"
+                            value={appState.fund.target}
+                            onChange={(e) => {
+                              const val = Math.max(1, Number(e.target.value));
+                              updateState((prev) => ({
+                                ...prev,
+                                fund: { ...prev.fund, target: val },
+                              }));
+                            }}
+                            className="w-full pl-10 pr-3.5 py-2 rounded-xl border border-amber-900/15 text-sm bg-[#FFFBF5] font-bold text-[#3E2723]"
+                          />
+                        </div>
+                        <p className="text-[11px] text-[#3E2723]/60">
+                          Recommended benchmark: RM 3,000 – RM 3,500 covers 8 cats & monthly TNR drives.
+                        </p>
+                      </div>
+
+                      <div className="bg-white p-4 rounded-2xl border border-amber-900/10 space-y-2">
+                        <label className="block text-xs font-bold text-[#3E2723] uppercase tracking-wider">
+                          Current Collected / Raised Amount (RM)
+                        </label>
+                        <div className="relative">
+                          <span className="absolute left-3.5 top-2.5 text-xs font-bold text-[#3E2723]/50">RM</span>
+                          <input
+                            type="number"
+                            min="0"
+                            step="10"
+                            value={appState.fund.raised}
+                            onChange={(e) => {
+                              const val = Math.max(0, Number(e.target.value));
+                              updateState((prev) => ({
+                                ...prev,
+                                fund: { ...prev.fund, raised: val },
+                              }));
+                            }}
+                            className="w-full pl-10 pr-3.5 py-2 rounded-xl border border-amber-900/15 text-sm bg-[#FFFBF5] font-bold text-[#E56B6B]"
+                          />
+                        </div>
+                        <p className="text-[11px] text-[#3E2723]/60">
+                          Auto-increments whenever a customer pre-orders (50% profit) or donates online!
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Live Progress Preview */}
+                    <div className="bg-white p-5 rounded-2xl border border-amber-900/10 space-y-3">
+                      <div className="flex justify-between items-center text-xs font-bold">
+                        <span className="text-[#3E2723]">Live Progress Preview</span>
+                        <span className="text-[#E56B6B]">{fundPercent}% Achieved (RM {appState.fund.raised} / RM {appState.fund.target})</span>
+                      </div>
+                      <div className="w-full bg-amber-100 rounded-full h-3.5 overflow-hidden">
+                        <div
+                          className="bg-gradient-to-r from-[#FF8A8A] to-[#E56B6B] h-full rounded-full transition-all duration-500"
+                          style={{ width: `${fundPercent}%` }}
+                        ></div>
+                      </div>
+                      <div className="flex justify-between text-[11px] text-[#3E2723]/60">
+                        <span>Remaining needed this month: RM {Math.max(0, appState.fund.target - appState.fund.raised)}</span>
+                        <span>Status: {fundPercent >= 100 ? '🎉 Monthly Goal Met!' : 'Active Rescue Campaign'}</span>
+                      </div>
+                    </div>
+
+                    {/* Breakdown Budget Distribution */}
+                    <div className="bg-white p-5 rounded-2xl border border-amber-900/10 space-y-3">
+                      <h5 className="font-bold text-xs text-[#3E2723] uppercase tracking-wider">
+                        Monthly Expense Allocation Breakdown (Target: RM {appState.fund.target})
+                      </h5>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+                        <div className="p-3 bg-amber-50/70 rounded-xl border border-amber-900/10">
+                          <span className="text-xl block mb-1">🩺</span>
+                          <span className="text-xs font-bold text-[#3E2723] block">Vet Care & Bills</span>
+                          <span className="text-[11px] text-[#E56B6B] font-bold">45% (~RM {Math.round(appState.fund.target * 0.45)})</span>
+                        </div>
+                        <div className="p-3 bg-amber-50/70 rounded-xl border border-amber-900/10">
+                          <span className="text-xl block mb-1">🍲</span>
+                          <span className="text-xs font-bold text-[#3E2723] block">Cat Food (Wet & Dry)</span>
+                          <span className="text-[11px] text-[#E56B6B] font-bold">25% (~RM {Math.round(appState.fund.target * 0.25)})</span>
+                        </div>
+                        <div className="p-3 bg-amber-50/70 rounded-xl border border-amber-900/10">
+                          <span className="text-xl block mb-1">🐾</span>
+                          <span className="text-xs font-bold text-[#3E2723] block">Tofu Litter</span>
+                          <span className="text-[11px] text-[#E56B6B] font-bold">15% (~RM {Math.round(appState.fund.target * 0.15)})</span>
+                        </div>
+                        <div className="p-3 bg-amber-50/70 rounded-xl border border-amber-900/10">
+                          <span className="text-xl block mb-1">💊</span>
+                          <span className="text-xs font-bold text-[#3E2723] block">Vitamins & Meds</span>
+                          <span className="text-[11px] text-[#E56B6B] font-bold">15% (~RM {Math.round(appState.fund.target * 0.15)})</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Quick Adjust Buttons */}
+                    <div className="flex flex-wrap items-center gap-2 pt-2">
+                      <span className="text-xs font-bold text-[#3E2723]/70 mr-1">Quick Adjust:</span>
+                      {[
+                        { label: '+ RM 50 (Cash Donor)', amount: 50 },
+                        { label: '+ RM 100 (Sponsorship)', amount: 100 },
+                        { label: '+ RM 500 (Fundraiser)', amount: 500 },
+                        { label: '- RM 100 (Vet Bill Paid)', amount: -100 },
+                      ].map((adj) => (
+                        <button
+                          key={adj.label}
+                          onClick={() => {
+                            updateState((prev) => ({
+                              ...prev,
+                              fund: {
+                                ...prev.fund,
+                                raised: Math.max(0, prev.fund.raised + adj.amount),
+                              },
+                            }));
+                            showToast(`Updated fund: ${adj.label}`);
+                          }}
+                          className="px-3 py-1.5 bg-amber-100/70 hover:bg-amber-200/80 rounded-xl text-xs font-bold text-[#3E2723] border border-amber-900/10 cursor-pointer transition-colors"
+                        >
+                          {adj.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* ========================================================= */}
+                {/* SECTION 2: Cat Profiles                                  */}
+                {/* ========================================================= */}
+                {activeAdminTab === 'cats' && (
+                  <div className="space-y-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-amber-900/10 gap-2">
+                      <div>
+                        <h4 className="font-bold text-base text-[#3E2723] flex items-center gap-2">
+                          <i className="fa-solid fa-cat text-[#E56B6B]"></i> Manage Resident Rescue Cats ({appState.cats.length})
+                        </h4>
+                        <p className="text-xs text-[#3E2723]/60">
+                          Edit profiles, statuses, photos, and rescue backstories. Changes update the public gallery immediately.
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => {
+                            const newCat: CatItem = {
+                              id: Date.now(),
+                              name: 'New Rescue Kitty',
+                              age: '1 Yr',
+                              backstory: 'Rescued from local neighborhood during recent TNR operation. Sweet and loving.',
+                              personality: 'Friendly, Gentle',
+                              status: 'Resident Ambassador',
+                              image: CAT_IMAGE_PRESETS[0].url,
+                            };
+                            updateState((prev) => ({
+                              ...prev,
+                              cats: [newCat, ...prev.cats],
+                            }));
+                            showToast('Added new resident cat profile! 🐾');
+                          }}
+                          className="bg-[#689F38] hover:bg-emerald-700 text-white px-3.5 py-2 rounded-xl text-xs font-bold cursor-pointer transition-colors flex items-center gap-1.5"
+                        >
+                          <i className="fa-solid fa-plus"></i> Add Cat
+                        </button>
+                        <button
+                          onClick={handleForceSave}
+                          className="bg-[#3E2723] hover:bg-black text-white px-3.5 py-2 rounded-xl text-xs font-bold cursor-pointer transition-colors flex items-center gap-1.5"
+                        >
+                          <i className="fa-solid fa-check"></i> Save Cats
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Cats List */}
+                    <div className="space-y-4">
                       {appState.cats.map((cat, idx) => (
                         <div
                           key={cat.id}
-                          className="p-3 bg-white rounded-xl border border-amber-900/10 space-y-2"
+                          className="p-4 bg-white rounded-2xl border border-amber-900/10 shadow-xs space-y-3"
                         >
-                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                            <input
-                              type="text"
-                              value={cat.name}
-                              onChange={(e) => {
-                                const copy = [...appState.cats];
-                                copy[idx].name = e.target.value;
-                                updateState((prev) => ({ ...prev, cats: copy }));
-                              }}
-                              placeholder="Cat Name"
-                              className="p-2 border rounded-sm text-xs font-bold"
-                            />
-                            <input
-                              type="text"
-                              value={cat.age}
-                              onChange={(e) => {
-                                const copy = [...appState.cats];
-                                copy[idx].age = e.target.value;
-                                updateState((prev) => ({ ...prev, cats: copy }));
-                              }}
-                              placeholder="Age"
-                              className="p-2 border rounded-sm text-xs"
-                            />
-                            <input
-                              type="text"
-                              value={cat.personality}
-                              onChange={(e) => {
-                                const copy = [...appState.cats];
-                                copy[idx].personality = e.target.value;
-                                updateState((prev) => ({ ...prev, cats: copy }));
-                              }}
-                              placeholder="Personality"
-                              className="p-2 border rounded-sm text-xs"
-                            />
+                          <div className="flex flex-col sm:flex-row gap-4 items-start">
+                            {/* Cat Image Preview */}
+                            <div className="relative w-20 h-20 rounded-2xl overflow-hidden border border-amber-900/10 shrink-0 bg-amber-50">
+                              <img
+                                src={cat.image}
+                                alt={cat.name}
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  (e.target as HTMLImageElement).src = CAT_IMAGE_PRESETS[0].url;
+                                }}
+                              />
+                            </div>
+
+                            {/* Main Cat Details */}
+                            <div className="grow space-y-3 w-full">
+                              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                <div>
+                                  <label className="block text-[10px] font-bold uppercase text-[#3E2723]/60 mb-0.5">Cat Name</label>
+                                  <input
+                                    type="text"
+                                    value={cat.name}
+                                    onChange={(e) => {
+                                      const copy = [...appState.cats];
+                                      copy[idx].name = e.target.value;
+                                      updateState((prev) => ({ ...prev, cats: copy }));
+                                    }}
+                                    placeholder="Cat Name"
+                                    className="w-full p-2 border border-amber-900/15 rounded-xl text-xs font-bold bg-[#FFFBF5]"
+                                  />
+                                </div>
+
+                                <div>
+                                  <label className="block text-[10px] font-bold uppercase text-[#3E2723]/60 mb-0.5">Estimated Age</label>
+                                  <input
+                                    type="text"
+                                    value={cat.age}
+                                    onChange={(e) => {
+                                      const copy = [...appState.cats];
+                                      copy[idx].age = e.target.value;
+                                      updateState((prev) => ({ ...prev, cats: copy }));
+                                    }}
+                                    placeholder="e.g. 2 Yrs or 8 Mos"
+                                    className="w-full p-2 border border-amber-900/15 rounded-xl text-xs bg-[#FFFBF5]"
+                                  />
+                                </div>
+
+                                <div>
+                                  <label className="block text-[10px] font-bold uppercase text-[#3E2723]/60 mb-0.5">Status Badge</label>
+                                  <select
+                                    value={cat.status}
+                                    onChange={(e) => {
+                                      const copy = [...appState.cats];
+                                      copy[idx].status = e.target.value;
+                                      updateState((prev) => ({ ...prev, cats: copy }));
+                                    }}
+                                    className="w-full p-2 border border-amber-900/15 rounded-xl text-xs font-semibold bg-[#FFFBF5]"
+                                  >
+                                    <option value="Resident Ambassador">Resident Ambassador</option>
+                                    <option value="Up for Adoption">Up for Adoption</option>
+                                    <option value="Medical Recovery">Medical Recovery</option>
+                                    <option value="Fostered & Loved">Fostered & Loved</option>
+                                    <option value="Senior Resident">Senior Resident</option>
+                                  </select>
+                                </div>
+                              </div>
+
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                <div>
+                                  <label className="block text-[10px] font-bold uppercase text-[#3E2723]/60 mb-0.5">Personality Traits</label>
+                                  <input
+                                    type="text"
+                                    value={cat.personality}
+                                    onChange={(e) => {
+                                      const copy = [...appState.cats];
+                                      copy[idx].personality = e.target.value;
+                                      updateState((prev) => ({ ...prev, cats: copy }));
+                                    }}
+                                    placeholder="e.g. Playful, Cuddle Bug"
+                                    className="w-full p-2 border border-amber-900/15 rounded-xl text-xs bg-[#FFFBF5]"
+                                  />
+                                </div>
+
+                                <div>
+                                  <label className="block text-[10px] font-bold uppercase text-[#3E2723]/60 mb-0.5">Image URL</label>
+                                  <input
+                                    type="text"
+                                    value={cat.image}
+                                    onChange={(e) => {
+                                      const copy = [...appState.cats];
+                                      copy[idx].image = e.target.value;
+                                      updateState((prev) => ({ ...prev, cats: copy }));
+                                    }}
+                                    placeholder="https://..."
+                                    className="w-full p-2 border border-amber-900/15 rounded-xl text-xs bg-[#FFFBF5]"
+                                  />
+                                </div>
+                              </div>
+
+                              {/* Quick Photo Selector Buttons */}
+                              <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                                <span className="text-[10px] text-[#3E2723]/60 font-semibold mr-1">Photo Presets:</span>
+                                {CAT_IMAGE_PRESETS.map((p) => (
+                                  <button
+                                    key={p.label}
+                                    type="button"
+                                    onClick={() => {
+                                      const copy = [...appState.cats];
+                                      copy[idx].image = p.url;
+                                      updateState((prev) => ({ ...prev, cats: copy }));
+                                    }}
+                                    className="text-[10px] bg-amber-50 hover:bg-amber-100 border border-amber-900/10 px-2 py-0.5 rounded-md text-[#3E2723] cursor-pointer"
+                                  >
+                                    {p.label}
+                                  </button>
+                                ))}
+                              </div>
+
+                              {/* Backstory */}
+                              <div>
+                                <label className="block text-[10px] font-bold uppercase text-[#3E2723]/60 mb-0.5">Rescue Backstory</label>
+                                <textarea
+                                  value={cat.backstory}
+                                  onChange={(e) => {
+                                    const copy = [...appState.cats];
+                                    copy[idx].backstory = e.target.value;
+                                    updateState((prev) => ({ ...prev, cats: copy }));
+                                  }}
+                                  rows={2}
+                                  className="w-full p-2 border border-amber-900/15 rounded-xl text-xs bg-[#FFFBF5]"
+                                  placeholder="Describe how this kitty was rescued and their progress..."
+                                />
+                              </div>
+
+                              {/* Delete Button */}
+                              <div className="flex justify-end pt-1">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (window.confirm(`Delete profile for ${cat.name}?`)) {
+                                      updateState((prev) => ({
+                                        ...prev,
+                                        cats: prev.cats.filter((_, i) => i !== idx),
+                                      }));
+                                      showToast(`Removed ${cat.name}`);
+                                    }
+                                  }}
+                                  className="text-xs text-red-500 hover:text-red-700 font-bold flex items-center gap-1 cursor-pointer"
+                                >
+                                  <i className="fa-solid fa-trash-can text-xs"></i> Delete Profile
+                                </button>
+                              </div>
+                            </div>
                           </div>
-                          <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
-                            <input
-                              type="text"
-                              value={cat.image}
-                              onChange={(e) => {
-                                const copy = [...appState.cats];
-                                copy[idx].image = e.target.value;
-                                updateState((prev) => ({ ...prev, cats: copy }));
-                              }}
-                              placeholder="Image URL"
-                              className="sm:col-span-3 p-2 border rounded-sm text-xs"
-                            />
-                            <button
-                              onClick={() => {
-                                if (window.confirm(`Delete ${cat.name}?`)) {
-                                  updateState((prev) => ({
-                                    ...prev,
-                                    cats: prev.cats.filter((_, i) => i !== idx),
-                                  }));
-                                  showToast(`Removed ${cat.name}`);
-                                }
-                              }}
-                              className="bg-red-500 text-white p-2 rounded-sm text-xs font-bold hover:bg-red-600 cursor-pointer"
-                            >
-                              Delete
-                            </button>
-                          </div>
-                          <textarea
-                            value={cat.backstory}
-                            onChange={(e) => {
-                              const copy = [...appState.cats];
-                              copy[idx].backstory = e.target.value;
-                              updateState((prev) => ({ ...prev, cats: copy }));
-                            }}
-                            className="w-full p-2 border rounded-sm text-xs"
-                            rows={2}
-                          />
                         </div>
                       ))}
                     </div>
                   </div>
                 )}
 
-                {/* TAB 3: Menu Items */}
+                {/* ========================================================= */}
+                {/* SECTION 3: Menu Items                                    */}
+                {/* ========================================================= */}
                 {activeAdminTab === 'menu' && (
                   <div className="space-y-4">
-                    <div className="flex justify-between items-center border-b border-amber-900/10 pb-2">
-                      <h4 className="font-bold text-base text-[#3E2723]">Manage Cafe Menu</h4>
-                      <button
-                        onClick={() => {
-                          const newItem: MenuItem = {
-                            id: Date.now(),
-                            title: 'New Special',
-                            category: 'Coffee & Beverages',
-                            price: 12.0,
-                            desc: 'Freshly prepared cafe delight.',
-                            image:
-                              'https://images.unsplash.com/photo-1534778101976-62847782c213?auto=format&fit=crop&w=500&q=80',
-                          };
-                          updateState((prev) => ({
-                            ...prev,
-                            menu: [...prev.menu, newItem],
-                          }));
-                          showToast('Added new menu item!');
-                        }}
-                        className="bg-[#689F38] text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-emerald-700 cursor-pointer"
-                      >
-                        + Add Item
-                      </button>
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-amber-900/10 gap-2">
+                      <div>
+                        <h4 className="font-bold text-base text-[#3E2723] flex items-center gap-2">
+                          <i className="fa-solid fa-mug-hot text-[#E56B6B]"></i> Manage Cafe Menu & Prices ({appState.menu.length})
+                        </h4>
+                        <p className="text-xs text-[#3E2723]/60">
+                          Edit coffee, mains, and pastries. 50% of menu pre-order profits directly fund cat food and vet bills.
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => {
+                            const newItem: MenuItem = {
+                              id: Date.now(),
+                              title: 'New Artisan Special',
+                              category: 'Coffee & Beverages',
+                              price: 12.0,
+                              desc: 'Handcrafted with specialty ingredients and barista love.',
+                              image: MENU_IMAGE_PRESETS[0].url,
+                            };
+                            updateState((prev) => ({
+                              ...prev,
+                              menu: [newItem, ...prev.menu],
+                            }));
+                            showToast('Added new menu item!');
+                          }}
+                          className="bg-[#689F38] hover:bg-emerald-700 text-white px-3.5 py-2 rounded-xl text-xs font-bold cursor-pointer transition-colors flex items-center gap-1.5"
+                        >
+                          <i className="fa-solid fa-plus"></i> Add Menu Item
+                        </button>
+                        <button
+                          onClick={handleForceSave}
+                          className="bg-[#3E2723] hover:bg-black text-white px-3.5 py-2 rounded-xl text-xs font-bold cursor-pointer transition-colors flex items-center gap-1.5"
+                        >
+                          <i className="fa-solid fa-check"></i> Save Menu
+                        </button>
+                      </div>
                     </div>
 
-                    <div className="space-y-3">
-                      {appState.menu.map((item, idx) => (
-                        <div
-                          key={item.id}
-                          className="p-3 bg-white rounded-xl border border-amber-900/10 grid grid-cols-1 sm:grid-cols-12 gap-2 items-center"
+                    {/* Menu Category Filter in Admin */}
+                    <div className="flex gap-2 pb-1 overflow-x-auto">
+                      {['All', 'Coffee & Beverages', 'Hot Mains', 'Pastries & Treats'].map((cat) => (
+                        <button
+                          key={cat}
+                          onClick={() => setMenuFilter(cat)}
+                          className={`text-xs px-3 py-1.5 rounded-lg font-bold border transition-colors cursor-pointer ${
+                            menuFilter === cat
+                              ? 'bg-[#3E2723] text-white border-[#3E2723]'
+                              : 'bg-white text-[#3E2723]/70 border-amber-900/10 hover:bg-amber-50'
+                          }`}
                         >
-                          <input
-                            type="text"
-                            value={item.title}
-                            onChange={(e) => {
-                              const copy = [...appState.menu];
-                              copy[idx].title = e.target.value;
-                              updateState((prev) => ({ ...prev, menu: copy }));
-                            }}
-                            className="sm:col-span-4 p-2 border rounded-sm text-xs font-bold"
-                          />
-                          <select
-                            value={item.category}
-                            onChange={(e) => {
-                              const copy = [...appState.menu];
-                              copy[idx].category = e.target.value as any;
-                              updateState((prev) => ({ ...prev, menu: copy }));
-                            }}
-                            className="sm:col-span-3 p-2 border rounded-sm text-xs"
-                          >
-                            <option value="Coffee & Beverages">Coffee & Beverages</option>
-                            <option value="Hot Mains">Hot Mains</option>
-                            <option value="Pastries & Treats">Pastries & Treats</option>
-                          </select>
-                          <input
-                            type="number"
-                            step="0.5"
-                            value={item.price}
-                            onChange={(e) => {
-                              const copy = [...appState.menu];
-                              copy[idx].price = parseFloat(e.target.value) || 0;
-                              updateState((prev) => ({ ...prev, menu: copy }));
-                            }}
-                            className="sm:col-span-2 p-2 border rounded-sm text-xs font-bold font-mono"
-                          />
-                          <button
-                            onClick={() => {
-                              if (window.confirm(`Delete ${item.title}?`)) {
-                                updateState((prev) => ({
-                                  ...prev,
-                                  menu: prev.menu.filter((_, i) => i !== idx),
-                                }));
-                                showToast(`Deleted ${item.title}`);
-                              }
-                            }}
-                            className="sm:col-span-3 bg-red-500 text-white p-2 rounded-sm text-xs font-bold hover:bg-red-600 cursor-pointer"
-                          >
-                            Delete
-                          </button>
-                        </div>
+                          {cat}
+                        </button>
                       ))}
+                    </div>
+
+                    {/* Menu Items List */}
+                    <div className="space-y-4">
+                      {filteredMenu.map((item) => {
+                        const originalIdx = appState.menu.findIndex((m) => m.id === item.id);
+                        return (
+                          <div
+                            key={item.id}
+                            className="p-4 bg-white rounded-2xl border border-amber-900/10 shadow-xs space-y-3"
+                          >
+                            <div className="flex flex-col sm:flex-row gap-4 items-start">
+                              {/* Photo Preview */}
+                              <div className="relative w-20 h-20 rounded-2xl overflow-hidden border border-amber-900/10 shrink-0 bg-amber-50">
+                                <img
+                                  src={item.image}
+                                  alt={item.title}
+                                  className="w-full h-full object-cover"
+                                  onError={(e) => {
+                                    (e.target as HTMLImageElement).src = MENU_IMAGE_PRESETS[0].url;
+                                  }}
+                                />
+                              </div>
+
+                              {/* Form Fields */}
+                              <div className="grow space-y-3 w-full">
+                                <div className="grid grid-cols-1 sm:grid-cols-12 gap-2">
+                                  <div className="sm:col-span-5">
+                                    <label className="block text-[10px] font-bold uppercase text-[#3E2723]/60 mb-0.5">Item Title</label>
+                                    <input
+                                      type="text"
+                                      value={item.title}
+                                      onChange={(e) => {
+                                        const copy = [...appState.menu];
+                                        copy[originalIdx].title = e.target.value;
+                                        updateState((prev) => ({ ...prev, menu: copy }));
+                                      }}
+                                      className="w-full p-2 border border-amber-900/15 rounded-xl text-xs font-bold bg-[#FFFBF5]"
+                                    />
+                                  </div>
+
+                                  <div className="sm:col-span-4">
+                                    <label className="block text-[10px] font-bold uppercase text-[#3E2723]/60 mb-0.5">Category</label>
+                                    <select
+                                      value={item.category}
+                                      onChange={(e) => {
+                                        const copy = [...appState.menu];
+                                        copy[originalIdx].category = e.target.value as any;
+                                        updateState((prev) => ({ ...prev, menu: copy }));
+                                      }}
+                                      className="w-full p-2 border border-amber-900/15 rounded-xl text-xs bg-[#FFFBF5]"
+                                    >
+                                      <option value="Coffee & Beverages">Coffee & Beverages</option>
+                                      <option value="Hot Mains">Hot Mains</option>
+                                      <option value="Pastries & Treats">Pastries & Treats</option>
+                                    </select>
+                                  </div>
+
+                                  <div className="sm:col-span-3">
+                                    <label className="block text-[10px] font-bold uppercase text-[#3E2723]/60 mb-0.5">Price (MYR RM)</label>
+                                    <div className="relative">
+                                      <span className="absolute left-2.5 top-2 text-xs font-bold text-[#3E2723]/50">RM</span>
+                                      <input
+                                        type="number"
+                                        step="0.5"
+                                        min="0"
+                                        value={item.price}
+                                        onChange={(e) => {
+                                          const copy = [...appState.menu];
+                                          copy[originalIdx].price = Math.max(0, parseFloat(e.target.value) || 0);
+                                          updateState((prev) => ({ ...prev, menu: copy }));
+                                        }}
+                                        className="w-full pl-9 pr-2 p-2 border border-amber-900/15 rounded-xl text-xs font-bold font-mono bg-[#FFFBF5]"
+                                      />
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                  <div>
+                                    <label className="block text-[10px] font-bold uppercase text-[#3E2723]/60 mb-0.5">Description</label>
+                                    <input
+                                      type="text"
+                                      value={item.desc}
+                                      onChange={(e) => {
+                                        const copy = [...appState.menu];
+                                        copy[originalIdx].desc = e.target.value;
+                                        updateState((prev) => ({ ...prev, menu: copy }));
+                                      }}
+                                      className="w-full p-2 border border-amber-900/15 rounded-xl text-xs bg-[#FFFBF5]"
+                                      placeholder="Ingredients or culinary notes..."
+                                    />
+                                  </div>
+
+                                  <div>
+                                    <label className="block text-[10px] font-bold uppercase text-[#3E2723]/60 mb-0.5">Image URL</label>
+                                    <input
+                                      type="text"
+                                      value={item.image}
+                                      onChange={(e) => {
+                                        const copy = [...appState.menu];
+                                        copy[originalIdx].image = e.target.value;
+                                        updateState((prev) => ({ ...prev, menu: copy }));
+                                      }}
+                                      className="w-full p-2 border border-amber-900/15 rounded-xl text-xs bg-[#FFFBF5]"
+                                      placeholder="https://..."
+                                    />
+                                  </div>
+                                </div>
+
+                                {/* Preset Image Buttons */}
+                                <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                                  <span className="text-[10px] text-[#3E2723]/60 font-semibold mr-1">Food Presets:</span>
+                                  {MENU_IMAGE_PRESETS.map((p) => (
+                                    <button
+                                      key={p.label}
+                                      type="button"
+                                      onClick={() => {
+                                        const copy = [...appState.menu];
+                                        copy[originalIdx].image = p.url;
+                                        updateState((prev) => ({ ...prev, menu: copy }));
+                                      }}
+                                      className="text-[10px] bg-amber-50 hover:bg-amber-100 border border-amber-900/10 px-2 py-0.5 rounded-md text-[#3E2723] cursor-pointer"
+                                    >
+                                      {p.label}
+                                    </button>
+                                  ))}
+                                </div>
+
+                                {/* Delete Item */}
+                                <div className="flex justify-end pt-1">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      if (window.confirm(`Delete ${item.title}?`)) {
+                                        updateState((prev) => ({
+                                          ...prev,
+                                          menu: prev.menu.filter((m) => m.id !== item.id),
+                                        }));
+                                        showToast(`Deleted ${item.title}`);
+                                      }
+                                    }}
+                                    className="text-xs text-red-500 hover:text-red-700 font-bold flex items-center gap-1 cursor-pointer"
+                                  >
+                                    <i className="fa-solid fa-trash-can text-xs"></i> Delete Item
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
 
-                {/* TAB 4: TNR Missions */}
+                {/* ========================================================= */}
+                {/* SECTION 4: TNR Updates                                   */}
+                {/* ========================================================= */}
                 {activeAdminTab === 'missions' && (
                   <div className="space-y-4">
-                    <div className="flex justify-between items-center border-b border-amber-900/10 pb-2">
-                      <h4 className="font-bold text-base text-[#3E2723]">
-                        Manage Rescue Updates & TNR Projects
-                      </h4>
-                      <button
-                        onClick={() => {
-                          const newMission: MissionItem = {
-                            id: Date.now(),
-                            title: 'New TNR Mission Drive',
-                            status: 'Scheduled',
-                            desc: 'Community cat TNR operation planned.',
-                            date: 'Upcoming',
-                            image:
-                              'https://images.unsplash.com/photo-1548802673-380ab8ebc7b7?auto=format&fit=crop&w=600&q=80',
-                          };
-                          updateState((prev) => ({
-                            ...prev,
-                            missions: [...prev.missions, newMission],
-                          }));
-                          showToast('Added mission update!');
-                        }}
-                        className="bg-[#689F38] text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-emerald-700 cursor-pointer"
-                      >
-                        + Add Update
-                      </button>
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-amber-900/10 gap-2">
+                      <div>
+                        <h4 className="font-bold text-base text-[#3E2723] flex items-center gap-2">
+                          <i className="fa-solid fa-notes-medical text-[#E56B6B]"></i> Manage TNR & Rescue Operations Log ({appState.missions.length})
+                        </h4>
+                        <p className="text-xs text-[#3E2723]/60">
+                          Log neighborhood Trap-Neuter-Return milestones, veterinary procedures, and community rescue missions.
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => {
+                            const newMission: MissionItem = {
+                              id: Date.now(),
+                              title: 'New Neighborhood TNR Project',
+                              status: 'Scheduled',
+                              desc: 'Trapping and neutering community cats to humanely manage population and ensure medical vaccinations.',
+                              date: 'Upcoming',
+                              image: TNR_IMAGE_PRESETS[0].url,
+                            };
+                            updateState((prev) => ({
+                              ...prev,
+                              missions: [newMission, ...prev.missions],
+                            }));
+                            showToast('Added TNR mission update!');
+                          }}
+                          className="bg-[#689F38] hover:bg-emerald-700 text-white px-3.5 py-2 rounded-xl text-xs font-bold cursor-pointer transition-colors flex items-center gap-1.5"
+                        >
+                          <i className="fa-solid fa-plus"></i> Add Update
+                        </button>
+                        <button
+                          onClick={handleForceSave}
+                          className="bg-[#3E2723] hover:bg-black text-white px-3.5 py-2 rounded-xl text-xs font-bold cursor-pointer transition-colors flex items-center gap-1.5"
+                        >
+                          <i className="fa-solid fa-check"></i> Save Updates
+                        </button>
+                      </div>
                     </div>
 
-                    <div className="space-y-3">
+                    {/* Missions List */}
+                    <div className="space-y-4">
                       {appState.missions.map((m, idx) => (
                         <div
                           key={m.id}
-                          className="p-3 bg-white rounded-xl border border-amber-900/10 space-y-2"
+                          className="p-4 bg-white rounded-2xl border border-amber-900/10 shadow-xs space-y-3"
                         >
-                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                            <input
-                              type="text"
-                              value={m.title}
-                              onChange={(e) => {
-                                const copy = [...appState.missions];
-                                copy[idx].title = e.target.value;
-                                updateState((prev) => ({ ...prev, missions: copy }));
-                              }}
-                              className="p-2 border rounded-sm text-xs font-bold"
-                            />
-                            <select
-                              value={m.status}
-                              onChange={(e) => {
-                                const copy = [...appState.missions];
-                                copy[idx].status = e.target.value as any;
-                                updateState((prev) => ({ ...prev, missions: copy }));
-                              }}
-                              className="p-2 border rounded-sm text-xs"
-                            >
-                              <option value="Completed">Completed</option>
-                              <option value="In Progress">In Progress</option>
-                              <option value="Scheduled">Scheduled</option>
-                            </select>
-                            <input
-                              type="text"
-                              value={m.date}
-                              onChange={(e) => {
-                                const copy = [...appState.missions];
-                                copy[idx].date = e.target.value;
-                                updateState((prev) => ({ ...prev, missions: copy }));
-                              }}
-                              className="p-2 border rounded-sm text-xs"
-                            />
-                          </div>
-                          <div className="flex gap-2">
-                            <input
-                              type="text"
-                              value={m.image}
-                              onChange={(e) => {
-                                const copy = [...appState.missions];
-                                copy[idx].image = e.target.value;
-                                updateState((prev) => ({ ...prev, missions: copy }));
-                              }}
-                              className="w-full p-2 border rounded-sm text-xs"
-                              placeholder="Image URL"
-                            />
-                            <button
-                              onClick={() => {
-                                if (window.confirm(`Delete ${m.title}?`)) {
-                                  updateState((prev) => ({
-                                    ...prev,
-                                    missions: prev.missions.filter((_, i) => i !== idx),
-                                  }));
-                                  showToast('Deleted mission update');
-                                }
-                              }}
-                              className="bg-red-500 text-white px-3 p-2 rounded-sm text-xs font-bold cursor-pointer"
-                            >
-                              Delete
-                            </button>
+                          <div className="flex flex-col sm:flex-row gap-4 items-start">
+                            {/* Mission Image Preview */}
+                            <div className="relative w-20 h-20 rounded-2xl overflow-hidden border border-amber-900/10 shrink-0 bg-amber-50">
+                              <img
+                                src={m.image}
+                                alt={m.title}
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  (e.target as HTMLImageElement).src = TNR_IMAGE_PRESETS[0].url;
+                                }}
+                              />
+                            </div>
+
+                            {/* Details */}
+                            <div className="grow space-y-3 w-full">
+                              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                <div>
+                                  <label className="block text-[10px] font-bold uppercase text-[#3E2723]/60 mb-0.5">Mission Title</label>
+                                  <input
+                                    type="text"
+                                    value={m.title}
+                                    onChange={(e) => {
+                                      const copy = [...appState.missions];
+                                      copy[idx].title = e.target.value;
+                                      updateState((prev) => ({ ...prev, missions: copy }));
+                                    }}
+                                    className="w-full p-2 border border-amber-900/15 rounded-xl text-xs font-bold bg-[#FFFBF5]"
+                                  />
+                                </div>
+
+                                <div>
+                                  <label className="block text-[10px] font-bold uppercase text-[#3E2723]/60 mb-0.5">Mission Status</label>
+                                  <select
+                                    value={m.status}
+                                    onChange={(e) => {
+                                      const copy = [...appState.missions];
+                                      copy[idx].status = e.target.value as any;
+                                      updateState((prev) => ({ ...prev, missions: copy }));
+                                    }}
+                                    className="w-full p-2 border border-amber-900/15 rounded-xl text-xs font-semibold bg-[#FFFBF5]"
+                                  >
+                                    <option value="Completed">Completed</option>
+                                    <option value="In Progress">In Progress</option>
+                                    <option value="Scheduled">Scheduled</option>
+                                  </select>
+                                </div>
+
+                                <div>
+                                  <label className="block text-[10px] font-bold uppercase text-[#3E2723]/60 mb-0.5">Date / Neighborhood Location</label>
+                                  <input
+                                    type="text"
+                                    value={m.date}
+                                    onChange={(e) => {
+                                      const copy = [...appState.missions];
+                                      copy[idx].date = e.target.value;
+                                      updateState((prev) => ({ ...prev, missions: copy }));
+                                    }}
+                                    className="w-full p-2 border border-amber-900/15 rounded-xl text-xs bg-[#FFFBF5]"
+                                    placeholder="e.g. October 2026 - PJ Seksyen 14"
+                                  />
+                                </div>
+                              </div>
+
+                              <div>
+                                <label className="block text-[10px] font-bold uppercase text-[#3E2723]/60 mb-0.5">Image URL</label>
+                                <input
+                                  type="text"
+                                  value={m.image}
+                                  onChange={(e) => {
+                                    const copy = [...appState.missions];
+                                    copy[idx].image = e.target.value;
+                                    updateState((prev) => ({ ...prev, missions: copy }));
+                                  }}
+                                  className="w-full p-2 border border-amber-900/15 rounded-xl text-xs bg-[#FFFBF5]"
+                                  placeholder="https://..."
+                                />
+                              </div>
+
+                              {/* Presets */}
+                              <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                                <span className="text-[10px] text-[#3E2723]/60 font-semibold mr-1">TNR Presets:</span>
+                                {TNR_IMAGE_PRESETS.map((p) => (
+                                  <button
+                                    key={p.label}
+                                    type="button"
+                                    onClick={() => {
+                                      const copy = [...appState.missions];
+                                      copy[idx].image = p.url;
+                                      updateState((prev) => ({ ...prev, missions: copy }));
+                                    }}
+                                    className="text-[10px] bg-amber-50 hover:bg-amber-100 border border-amber-900/10 px-2 py-0.5 rounded-md text-[#3E2723] cursor-pointer"
+                                  >
+                                    {p.label}
+                                  </button>
+                                ))}
+                              </div>
+
+                              {/* Description / Story */}
+                              <div>
+                                <label className="block text-[10px] font-bold uppercase text-[#3E2723]/60 mb-0.5">TNR Operation Impact Story</label>
+                                <textarea
+                                  value={m.desc}
+                                  onChange={(e) => {
+                                    const copy = [...appState.missions];
+                                    copy[idx].desc = e.target.value;
+                                    updateState((prev) => ({ ...prev, missions: copy }));
+                                  }}
+                                  rows={2}
+                                  className="w-full p-2 border border-amber-900/15 rounded-xl text-xs bg-[#FFFBF5]"
+                                  placeholder="Details on cats helped, veterinary clinic partnerships, and recovery updates..."
+                                />
+                              </div>
+
+                              {/* Delete Button */}
+                              <div className="flex justify-end pt-1">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (window.confirm(`Delete update ${m.title}?`)) {
+                                      updateState((prev) => ({
+                                        ...prev,
+                                        missions: prev.missions.filter((_, i) => i !== idx),
+                                      }));
+                                      showToast('Deleted TNR update');
+                                    }
+                                  }}
+                                  className="text-xs text-red-500 hover:text-red-700 font-bold flex items-center gap-1 cursor-pointer"
+                                >
+                                  <i className="fa-solid fa-trash-can text-xs"></i> Delete Update
+                                </button>
+                              </div>
+                            </div>
                           </div>
                         </div>
                       ))}
@@ -1539,80 +2106,322 @@ export default function App() {
                   </div>
                 )}
 
-                {/* TAB 5: Orders & Logs */}
+                {/* ========================================================= */}
+                {/* SECTION 5: Orders & Logs                                 */}
+                {/* ========================================================= */}
                 {activeAdminTab === 'orders' && (
-                  <div className="space-y-4">
-                    <h4 className="font-bold text-base text-[#3E2723] border-b border-amber-900/10 pb-2">
-                      Pre-Orders & Donation Activity Logs
-                    </h4>
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <div className="space-y-6">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-amber-900/10 gap-2">
                       <div>
-                        <h5 className="text-xs font-bold text-[#3E2723] uppercase mb-2">
-                          Customer Pre-Orders ({appState.orders?.length || 0})
-                        </h5>
-                        <div className="space-y-2 max-h-60 overflow-y-auto p-2 bg-white rounded-xl border border-amber-900/10 text-xs">
-                          {appState.orders && appState.orders.length > 0 ? (
-                            appState.orders.map((o) => (
-                              <div
-                                key={o.id}
-                                className="p-2 border-b border-amber-900/10 flex justify-between items-start"
-                              >
-                                <div>
-                                  <span className="font-bold text-[#3E2723]">
-                                    {o.name} ({o.phone})
-                                  </span>
-                                  <span className="block text-[10px] text-[#3E2723]/60">
-                                    {o.type} • {o.timestamp}
-                                  </span>
-                                  <span className="block text-[10px] text-[#3E2723]/75">
-                                    {o.items?.map((it) => `${it.title} x${it.qty}`).join(', ')}
-                                  </span>
-                                </div>
-                                <span className="font-bold text-[#689F38]">
-                                  RM {o.subtotal.toFixed(2)}
-                                </span>
-                              </div>
-                            ))
-                          ) : (
-                            <p className="text-[#3E2723]/50 p-2 text-center">
-                              No customer orders recorded yet.
-                            </p>
-                          )}
-                        </div>
+                        <h4 className="font-bold text-base text-[#3E2723] flex items-center gap-2">
+                          <i className="fa-solid fa-receipt text-[#E56B6B]"></i> Real-Time Orders & Donation Activity Logs
+                        </h4>
+                        <p className="text-xs text-[#3E2723]/60">
+                          Incoming customer pre-orders and donation pledges sync here in real-time from all visitors across devices.
+                        </p>
                       </div>
+                      <button
+                        onClick={handleForceSave}
+                        className="bg-[#689F38] hover:bg-emerald-700 text-white px-3.5 py-2 rounded-xl text-xs font-bold cursor-pointer transition-colors flex items-center gap-1.5 self-start sm:self-auto"
+                      >
+                        <i className="fa-solid fa-check"></i> Save & Sync Logs
+                      </button>
+                    </div>
 
-                      <div>
-                        <h5 className="text-xs font-bold text-[#3E2723] uppercase mb-2">
-                          Donation Activity ({appState.donations?.length || 0})
-                        </h5>
-                        <div className="space-y-2 max-h-60 overflow-y-auto p-2 bg-white rounded-xl border border-amber-900/10 text-xs">
-                          {appState.donations && appState.donations.length > 0 ? (
-                            appState.donations.map((d) => (
-                              <div
-                                key={d.id}
-                                className="p-2 border-b border-amber-900/10 flex justify-between items-start"
-                              >
-                                <div>
-                                  <span className="font-bold text-[#3E2723]">{d.donor}</span>
-                                  <span className="block text-[10px] text-[#3E2723]/60">
-                                    {d.note} • {d.timestamp}
-                                  </span>
-                                </div>
-                                <span className="font-bold text-[#E56B6B]">
-                                  + RM {d.amount}
-                                </span>
-                              </div>
-                            ))
-                          ) : (
-                            <p className="text-[#3E2723]/50 p-2 text-center">
-                              No direct donations logged yet.
-                            </p>
-                          )}
-                        </div>
+                    {/* Analytics Summary Cards */}
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      <div className="bg-white p-3.5 rounded-2xl border border-amber-900/10">
+                        <span className="text-[10px] uppercase font-bold text-[#3E2723]/60 block">Customer Orders</span>
+                        <span className="text-xl font-bold text-[#3E2723] block mt-0.5">{appState.orders?.length || 0}</span>
+                        <span className="text-[10px] text-[#689F38] font-bold">
+                          RM {(appState.orders || []).reduce((acc, o) => acc + o.subtotal, 0).toFixed(2)} total
+                        </span>
+                      </div>
+                      <div className="bg-white p-3.5 rounded-2xl border border-amber-900/10">
+                        <span className="text-[10px] uppercase font-bold text-[#3E2723]/60 block">Direct Donations</span>
+                        <span className="text-xl font-bold text-[#E56B6B] block mt-0.5">{appState.donations?.length || 0}</span>
+                        <span className="text-[10px] text-[#E56B6B] font-bold">
+                          RM {(appState.donations || []).reduce((acc, d) => acc + d.amount, 0).toFixed(2)} pledged
+                        </span>
+                      </div>
+                      <div className="bg-white p-3.5 rounded-2xl border border-amber-900/10">
+                        <span className="text-[10px] uppercase font-bold text-[#3E2723]/60 block">50% Order Fund Pool</span>
+                        <span className="text-xl font-bold text-[#689F38] block mt-0.5">
+                          RM {Math.round((appState.orders || []).reduce((acc, o) => acc + o.subtotal, 0) * 0.5)}
+                        </span>
+                        <span className="text-[10px] text-[#3E2723]/60 font-semibold">Tied to Cafe Sales</span>
+                      </div>
+                      <div className="bg-white p-3.5 rounded-2xl border border-amber-900/10">
+                        <span className="text-[10px] uppercase font-bold text-[#3E2723]/60 block">Current Fund Raised</span>
+                        <span className="text-xl font-bold text-[#3E2723] block mt-0.5">RM {appState.fund.raised}</span>
+                        <span className="text-[10px] text-[#E56B6B] font-bold">Goal: RM {appState.fund.target}</span>
                       </div>
                     </div>
+
+                    {/* Sub-tab Switcher: Orders vs Donations */}
+                    <div className="flex border-b border-amber-900/10 gap-3">
+                      <button
+                        onClick={() => setActiveLogSubTab('orders')}
+                        className={`pb-2 text-xs font-bold border-b-2 cursor-pointer transition-colors ${
+                          activeLogSubTab === 'orders'
+                            ? 'border-[#FF8A8A] text-[#E56B6B]'
+                            : 'border-transparent text-[#3E2723]/70 hover:text-[#3E2723]'
+                        }`}
+                      >
+                        Customer Pre-Orders ({appState.orders?.length || 0})
+                      </button>
+                      <button
+                        onClick={() => setActiveLogSubTab('donations')}
+                        className={`pb-2 text-xs font-bold border-b-2 cursor-pointer transition-colors ${
+                          activeLogSubTab === 'donations'
+                            ? 'border-[#FF8A8A] text-[#E56B6B]'
+                            : 'border-transparent text-[#3E2723]/70 hover:text-[#3E2723]'
+                        }`}
+                      >
+                        Donation Pledges & Manual Records ({appState.donations?.length || 0})
+                      </button>
+                    </div>
+
+                    {/* SUBTAB 1: ORDERS */}
+                    {activeLogSubTab === 'orders' && (
+                      <div className="space-y-3">
+                        {/* Order Status Filters */}
+                        <div className="flex flex-wrap items-center justify-between gap-2 pb-1">
+                          <div className="flex flex-wrap gap-1.5">
+                            {['all', 'Pending', 'Preparing', 'Ready', 'Completed', 'Cancelled'].map((st) => (
+                              <button
+                                key={st}
+                                onClick={() => setOrderFilter(st as any)}
+                                className={`text-[11px] px-2.5 py-1 rounded-lg font-bold border cursor-pointer ${
+                                  orderFilter === st
+                                    ? 'bg-[#3E2723] text-white border-[#3E2723]'
+                                    : 'bg-white text-[#3E2723]/70 border-amber-900/10 hover:bg-amber-50'
+                                }`}
+                              >
+                                {st === 'all' ? 'All Orders' : st}
+                              </button>
+                            ))}
+                          </div>
+
+                          {(appState.orders?.length || 0) > 0 && (
+                            <button
+                              onClick={() => {
+                                if (window.confirm('Clear all orders? This cannot be undone.')) {
+                                  updateState((prev) => ({ ...prev, orders: [] }));
+                                  showToast('Cleared orders list.');
+                                }
+                              }}
+                              className="text-[11px] text-red-500 hover:text-red-700 font-bold cursor-pointer"
+                            >
+                              Clear Order History
+                            </button>
+                          )}
+                        </div>
+
+                        {/* Orders List */}
+                        <div className="space-y-2.5 max-h-96 overflow-y-auto pr-1">
+                          {appState.orders && appState.orders.length > 0 ? (
+                            appState.orders
+                              .filter((o) => (orderFilter === 'all' ? true : (o.status || 'Pending') === orderFilter))
+                              .map((o, idx) => (
+                                <div
+                                  key={o.id}
+                                  className="p-3.5 bg-white rounded-2xl border border-amber-900/10 shadow-xs flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3"
+                                >
+                                  <div className="space-y-1">
+                                    <div className="flex items-center gap-2">
+                                      <span className="font-bold text-xs text-[#3E2723]">{o.name}</span>
+                                      <span className="text-[11px] text-[#3E2723]/70 font-mono">({o.phone})</span>
+                                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-[#3E2723]/80">
+                                        {o.type}
+                                      </span>
+                                      <span className="text-[10px] text-[#3E2723]/50">{o.timestamp}</span>
+                                    </div>
+                                    <p className="text-xs text-[#3E2723]/80 font-medium">
+                                      {o.items?.map((it) => `${it.title} x${it.qty}`).join(', ')}
+                                    </p>
+                                  </div>
+
+                                  <div className="flex items-center gap-3 self-end sm:self-center shrink-0">
+                                    <span className="font-bold text-sm text-[#689F38]">
+                                      RM {o.subtotal.toFixed(2)}
+                                    </span>
+
+                                    {/* Order Status Selector */}
+                                    <select
+                                      value={o.status || 'Pending'}
+                                      onChange={(e) => {
+                                        const copy = [...appState.orders];
+                                        copy[idx].status = e.target.value as any;
+                                        updateState((prev) => ({ ...prev, orders: copy }));
+                                        showToast(`Order status updated to ${e.target.value}`);
+                                      }}
+                                      className="text-xs font-bold px-2.5 py-1.5 rounded-xl border border-amber-900/15 bg-[#FFFBF5] text-[#3E2723]"
+                                    >
+                                      <option value="Pending">Pending</option>
+                                      <option value="Preparing">Preparing</option>
+                                      <option value="Ready">Ready</option>
+                                      <option value="Completed">Completed</option>
+                                      <option value="Cancelled">Cancelled</option>
+                                    </select>
+
+                                    {/* Delete Order */}
+                                    <button
+                                      onClick={() => {
+                                        if (window.confirm(`Delete order for ${o.name}?`)) {
+                                          updateState((prev) => ({
+                                            ...prev,
+                                            orders: prev.orders.filter((_, i) => i !== idx),
+                                          }));
+                                          showToast('Deleted order record');
+                                        }
+                                      }}
+                                      className="text-red-500 hover:text-red-700 p-1 cursor-pointer"
+                                      title="Delete Order"
+                                    >
+                                      <i className="fa-solid fa-trash-can text-xs"></i>
+                                    </button>
+                                  </div>
+                                </div>
+                              ))
+                          ) : (
+                            <div className="p-8 text-center bg-white rounded-2xl border border-amber-900/10 text-xs text-[#3E2723]/60 space-y-1">
+                              <span className="text-2xl block mb-1">📋</span>
+                              <p className="font-bold text-[#3E2723]">No customer orders recorded yet.</p>
+                              <p className="text-[11px]">When visitors place pre-orders on the website, they show up here instantly!</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* SUBTAB 2: DONATIONS & MANUAL ENTRY */}
+                    {activeLogSubTab === 'donations' && (
+                      <div className="space-y-4">
+                        {/* Manual Offline Donation Logger */}
+                        <div className="p-4 bg-amber-50/70 rounded-2xl border border-amber-900/10 space-y-3">
+                          <h5 className="font-bold text-xs text-[#3E2723] uppercase tracking-wider flex items-center gap-1.5">
+                            <i className="fa-solid fa-plus-circle text-[#E56B6B]"></i> Record Manual / Offline Walk-in Donation
+                          </h5>
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                            <input
+                              type="text"
+                              placeholder="Donor Name (or Anonymous)"
+                              value={manualDonorName}
+                              onChange={(e) => setManualDonorName(e.target.value)}
+                              className="p-2 border border-amber-900/15 rounded-xl text-xs bg-white"
+                            />
+                            <div className="relative">
+                              <span className="absolute left-3 top-2 text-xs font-bold text-[#3E2723]/50">RM</span>
+                              <input
+                                type="number"
+                                min="1"
+                                placeholder="Amount"
+                                value={manualDonorAmount}
+                                onChange={(e) => setManualDonorAmount(Math.max(1, Number(e.target.value)))}
+                                className="w-full pl-9 pr-2 p-2 border border-amber-900/15 rounded-xl text-xs font-bold bg-white"
+                              />
+                            </div>
+                            <input
+                              type="text"
+                              placeholder="Note / Payment Channel (e.g. Maybank QR, Cash)"
+                              value={manualDonorNote}
+                              onChange={(e) => setManualDonorNote(e.target.value)}
+                              className="p-2 border border-amber-900/15 rounded-xl text-xs bg-white"
+                            />
+                          </div>
+                          <div className="flex justify-end">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const amount = Number(manualDonorAmount);
+                                if (!amount || amount <= 0) {
+                                  showToast('Please enter a valid donation amount.');
+                                  return;
+                                }
+                                const donor = manualDonorName.trim() || 'Anonymous Guardian';
+                                const note = manualDonorNote.trim() || 'Offline Direct Contribution';
+                                const newDonation: DonationItem = {
+                                  id: Date.now(),
+                                  donor,
+                                  amount,
+                                  note,
+                                  timestamp: new Date().toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' }),
+                                };
+
+                                updateState((prev) => ({
+                                  ...prev,
+                                  fund: {
+                                    ...prev.fund,
+                                    raised: prev.fund.raised + amount,
+                                  },
+                                  donations: [newDonation, ...(prev.donations || [])],
+                                }));
+
+                                setManualDonorName('');
+                                setManualDonorAmount(50);
+                                setManualDonorNote('Direct Bank Transfer');
+                                showToast(`Recorded RM ${amount} from ${donor} & updated fund! ❤️`);
+                              }}
+                              className="bg-[#FF8A8A] hover:bg-[#E56B6B] text-white px-4 py-2 rounded-xl text-xs font-bold cursor-pointer transition-colors shadow-xs"
+                            >
+                              + Add & Increment Live Fund
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Donations List */}
+                        <div className="space-y-2.5 max-h-80 overflow-y-auto pr-1">
+                          {appState.donations && appState.donations.length > 0 ? (
+                            appState.donations.map((d, idx) => (
+                              <div
+                                key={d.id}
+                                className="p-3.5 bg-white rounded-2xl border border-amber-900/10 shadow-xs flex justify-between items-center"
+                              >
+                                <div>
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-bold text-xs text-[#3E2723]">{d.donor}</span>
+                                    <span className="text-[10px] text-[#3E2723]/50">• {d.timestamp}</span>
+                                  </div>
+                                  <span className="block text-[11px] text-[#3E2723]/70">{d.note}</span>
+                                </div>
+
+                                <div className="flex items-center gap-3">
+                                  <span className="font-bold text-sm text-[#E56B6B]">
+                                    + RM {d.amount}
+                                  </span>
+                                  <button
+                                    onClick={() => {
+                                      if (window.confirm(`Delete donation record of RM ${d.amount} from ${d.donor}?`)) {
+                                        updateState((prev) => ({
+                                          ...prev,
+                                          donations: prev.donations.filter((_, i) => i !== idx),
+                                        }));
+                                        showToast('Removed donation entry');
+                                      }
+                                    }}
+                                    className="text-red-500 hover:text-red-700 p-1 cursor-pointer"
+                                    title="Delete Entry"
+                                  >
+                                    <i className="fa-solid fa-trash-can text-xs"></i>
+                                  </button>
+                                </div>
+                              </div>
+                            ))
+                          ) : (
+                            <div className="p-8 text-center bg-white rounded-2xl border border-amber-900/10 text-xs text-[#3E2723]/60 space-y-1">
+                              <span className="text-2xl block mb-1">❤️</span>
+                              <p className="font-bold text-[#3E2723]">No donation logs recorded yet.</p>
+                              <p className="text-[11px]">Direct pledges from visitors or counter logs will appear here.</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
                   </div>
                 )}
+
               </div>
             </div>
           )}

@@ -34,6 +34,7 @@ export interface OrderItem {
   items: { id: number | string; title: string; price: number; qty: number }[];
   subtotal: number;
   timestamp: string;
+  status?: 'Pending' | 'Preparing' | 'Ready' | 'Completed' | 'Cancelled';
 }
 
 export interface DonationItem {
@@ -54,6 +55,7 @@ export interface AppState {
   missions: MissionItem[];
   orders: OrderItem[];
   donations: DonationItem[];
+  updatedAt?: string;
 }
 
 export const DEFAULT_DATA: AppState = {

@@ -1,0 +1,45 @@
+{
+  "entities": {
+    "CafeState": {
+      "title": "CafeState",
+      "description": "Master data for Pherbies Cafe including fund goal, cats, menu, missions, and activity logs",
+      "type": "object",
+      "properties": {
+        "fund": {
+          "type": "object",
+          "description": "Fund goal and collected rescue amount"
+        },
+        "cats": {
+          "type": "array",
+          "description": "List of rescue resident cats and profiles"
+        },
+        "menu": {
+          "type": "array",
+          "description": "List of cafe food, beverage, and treat items"
+        },
+        "missions": {
+          "type": "array",
+          "description": "TNR and neighborhood cat rescue operations log"
+        },
+        "orders": {
+          "type": "array",
+          "description": "Customer pre-orders and reservations"
+        },
+        "donations": {
+          "type": "array",
+          "description": "Direct rescue donation pledges"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Last ISO timestamp of update"
+        }
+      }
+    }
+  },
+  "firestore": {
+    "/cafe_data/{documentId}": {
+      "schema": "CafeState",
+      "description": "Real-time synchronized cafe configuration and rescue data shared across all visitors and devices"
+    }
+  }
+}
